@@ -10,6 +10,7 @@ DATA="$ROOT/data"
 NAIF=https://naif.jpl.nasa.gov/pub/naif/generic_kernels
 PGDA78=https://pgda.gsfc.nasa.gov/data/LOLA_5mpp
 LOLA_POLAR=https://imbrium.mit.edu/DATA/LOLA_GDR/POLAR/FLOAT_IMG
+ILLUM=http://imbrium.mit.edu/EXTRAS/ILLUMINATION/IMG  # PGDA product 69 mirror (PGDA COG links return an error page)
 
 # dest_subdir  url  expected_bytes (0 = don't check)
 FILES=(
@@ -27,6 +28,15 @@ FILES=(
   "dem/near $PGDA78/Site11/Site11_final_adj_5mpp_surf.tif 40980806"
   "dem/near $PGDA78/Site20v2/Site20v2_final_adj_5mpp_surf.tif 108192905"
   "dem/near $PGDA78/Site23/Site23_final_adj_5mpp_surf.tif 70586804"
+  # PGDA product 69 average Sun / Earth visibility maps (validation only)
+  "pgda69 $ILLUM/AVGVISIB_75S_120M_201608.LBL 0"
+  "pgda69 $ILLUM/AVGVISIB_75S_120M_201608.IMG 116250752"
+  "pgda69 $ILLUM/AVGVISIB_75S_120M_201608_EARTH.LBL 0"
+  "pgda69 $ILLUM/AVGVISIB_75S_120M_201608_EARTH.IMG 116250752"
+  "pgda69 $ILLUM/AVGVISIB_85S_060M_201608.LBL 0"
+  "pgda69 $ILLUM/AVGVISIB_85S_060M_201608.IMG 51166728"
+  "pgda69 $ILLUM/AVGVISIB_85S_060M_201608_EARTH.LBL 0"
+  "pgda69 $ILLUM/AVGVISIB_85S_060M_201608_EARTH.IMG 51166728"
   # ROI shapefiles (avg illumination > 70% regions); only published for these four sites
   "dem/roi_raw $PGDA78/Site01/Site01_ROIs.tgz 2934"
   "dem/roi_raw $PGDA78/Site04/Site04_ROIs.tgz 1712"

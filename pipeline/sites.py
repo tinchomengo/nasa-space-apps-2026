@@ -99,26 +99,4 @@ SITES: list[Site] = [
 BY_ID: dict[str, Site] = {s.id: s for s in SITES}
 
 
-# --- Validation-only points (not shown as display sites) -------------------------------
-# Published studies report values at specific points. validate_published.py evaluates at
-# EXACTLY these coordinates, not at our display-site points. lat/lon None = not yet sourced.
-
-@dataclass(frozen=True)
-class ValidationPoint:
-    id: str
-    label: str
-    lat: float | None
-    lon: float | None
-    source: str
-    note: str = ""
-
-
-VALIDATION_POINTS: list[ValidationPoint] = [
-    ValidationPoint("bussey-A", "Bussey 2010 point A", -89.68, -166.0, "Bussey et al. 2010 (Icarus 208:558)", "81% illuminated, 2020"),
-    ValidationPoint("bussey-B", "Bussey 2010 point B", -89.44, -141.8, "Bussey et al. 2010 (Icarus 208:558)", "82% illuminated, 2020"),
-    ValidationPoint("bussey-D", "Bussey 2010 point D", -88.79, 124.5, "Bussey et al. 2010 (Icarus 208:558)", "86% illuminated, 2020"),
-    ValidationPoint("glaser-CR1", "Gläser 2014 CR1", None, None, "Gläser et al. 2014 (Icarus 243:78)", "TODO: coordinates from the paper"),
-    ValidationPoint("bryant-B1", "Bryant 2009 ridge B1", None, None, "Bryant 2009, JPL IPN PR 42-176", "TODO: coordinates from the paper"),
-    ValidationPoint("kumari-007", "Kumari 2022 Site 007", None, None, "Kumari et al. 2022 (PSJ)", "TODO: coordinates from the paper"),
-    ValidationPoint("kumari-011", "Kumari 2022 Site 011", None, None, "Kumari et al. 2022 (PSJ)", "TODO: coordinates from the paper"),
-]
+# Validation-only points (published coordinates + values) live in validate_published.py.

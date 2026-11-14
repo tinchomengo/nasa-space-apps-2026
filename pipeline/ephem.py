@@ -63,12 +63,14 @@ def utc_times(dts: list[datetime] | np.ndarray):
     return load_kernels().ts.from_datetimes(list(dts))
 
 
-def utc_range(start: datetime, end: datetime, step_min: float):
+def utc_range(start: datetime, end: datetime, step_min: float, strict: bool = True):
     """Regular UTC grid [start, end) at step_min minutes. Returns (Time, unix_seconds).
 
     Built as SI-second offsets from a Skyfield Time anchored at `start`. (Anchoring at the Unix
     epoch would be off by the 27 leap seconds since 1970.) Exact as long as no leap second falls
     inside the span; none are scheduled for 2026-2028, and the assert below catches one if it does.
+    strict=False skips the assert: for multi-year statistics (e.g. 2009-2028, 3 leap seconds) the
+    grid's UTC labels drift by a few seconds, which does not affect percentages.
     """
     k = load_kernels()
     start = start if start.tzinfo else start.replace(tzinfo=timezone.utc)
@@ -77,7 +79,8 @@ def utc_range(start: datetime, end: datetime, step_min: float):
     t_start = k.ts.from_datetime(start)
     t = k.ts.tt_jd(t_start.whole, t_start.tt_fraction + offsets / 86400.0)
     last = k.ts.from_datetime(datetime.fromtimestamp(start.timestamp() + offsets[-1], tz=timezone.utc))
-    assert abs((t[-1].tt - last.tt) * 86400.0) < 1e-3, "leap second inside span: rebuild grid"
+    if strict:
+        assert abs((t[-1].tt - last.tt) * 86400.0) < 1e-3, "leap second inside span: rebuild grid"
     return t, start.timestamp() + offsets
 
 
