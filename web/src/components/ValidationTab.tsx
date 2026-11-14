@@ -24,8 +24,11 @@ interface Validation {
       published_points_vs_pgda: { sun: Med; earth: Med }
       published_vs_best2km: Med
     }
-    connecting_ridge_breakdown: { definition: string; period: string; steps: { label: string; sun: number; earth: number }[]; reading: string }
-    glaser: { source: string; ground_pct: number; two_m_pct: number; ten_m_pct: number; note: string }
+    connecting_ridge_breakdown: {
+      definition: string; period: string; steps: { label: string; sun: number; earth: number }[]; reading: string
+      heights: { h_m: number; sun: number; earth: number }[]; ground_note: string
+    }
+    glaser: { source: string; two_m_pct: number; ten_m_pct: number; note: string }
   }
 }
 
@@ -112,6 +115,34 @@ export function ValidationTab() {
       </div>
       <p>{cr.reading}</p>
 
+      <div className="table-scroll">
+        <table className="metrics compact" aria-label="Observer height sensitivity at Connecting Ridge">
+          <thead>
+            <tr>
+              <th scope="col">Mast height (5 m DEM)</th>
+              {cr.heights.map((x) => (
+                <th scope="col" key={x.h_m} className={x.h_m === 2 ? 'hl' : undefined}>{x.h_m} m</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">☀ Sun</th>
+              {cr.heights.map((x) => (
+                <td key={x.h_m} className={x.h_m === 2 ? 'hl' : undefined}>{p1(x.sun)}%</td>
+              ))}
+            </tr>
+            <tr>
+              <th scope="row">🌍 Earth</th>
+              {cr.heights.map((x) => (
+                <td key={x.h_m} className={x.h_m === 2 ? 'hl' : undefined}>{p1(x.earth)}%</td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>{cr.ground_note.replace('->', '→').replace('->', '→')}</p>
+
       <h4>Curated sites</h4>
       <div className="table-scroll">
         <table className="metrics wrap">
@@ -173,10 +204,9 @@ export function ValidationTab() {
         </table>
       </div>
       <p>
-        <strong>Consistency, not validation: {g.source}.</strong> The paper's best Connecting Ridge points are lit{' '}
-        {g.ground_pct}% of the time at ground level, {g.two_m_pct}% at 2 m and {g.ten_m_pct}% at 10 m. Our Connecting Ridge point
-        with a 2 m mast: {p1(cr.steps[4].sun)}%. The paper publishes no coordinates, so this is not a like-for-like
-        comparison. Our point sits on a slope rather than on a local top, which is why our ground-level value is lower.
+        <strong>{g.source}: different point, consistency only.</strong> 2 m mast: ours{' '}
+        {p1(cr.heights.find((x) => x.h_m === 2)?.sun ?? null)}% vs {g.two_m_pct}%; 10 m: ours{' '}
+        {p1(cr.heights.find((x) => x.h_m === 10)?.sun ?? null)}% vs {g.ten_m_pct}%. {g.note}
       </p>
       <p className="muted small">
         Without usable coordinates (listed, not compared):{' '}

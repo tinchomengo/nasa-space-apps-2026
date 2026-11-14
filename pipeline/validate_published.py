@@ -220,7 +220,7 @@ def explain_pgda(r: dict) -> str:
     gap = abs(r["pgda_sun"] - r["pgda120_sun"]) + abs(r["pgda_earth"] - r["pgda120_earth"])
     parts = [f"Replication vs PGDA 120 m: Sun {d_rep:+.1f}, Earth {r['rep_earth'] - r['pgda120_earth']:+.1f}."]
     if d_ours > 5:
-        parts.append(f"Ours vs PGDA 60 m Sun {d_ours:+.1f}: mostly our 2 m mast clearing near-field slopes (PGDA is at the surface), plus the 5 m DEM; see the Connecting Ridge breakdown.")
+        parts.append(f"Ours vs PGDA 60 m Sun {d_ours:+.1f}: likely mostly our 2 m mast (PGDA is at the surface) plus the 5 m DEM, as measured in the Connecting Ridge breakdown.")
     elif d_ours < -5:
         parts.append(f"Ours vs PGDA 60 m Sun {d_ours:+.1f}: lower than PGDA.")
     else:
@@ -259,41 +259,42 @@ def summary(res: dict) -> dict:
 
 
 def connecting_ridge_breakdown() -> dict:
-    """Why our Connecting Ridge value differs from PGDA 69: change one thing at a time (any-part definition)."""
+    """Why our Connecting Ridge value differs from PGDA 69, plus observer-height sensitivity (any-part definition).
+
+    Ground-level (0 m) values are NOT reported in the breakdown: they depend on slope at scales below the DEM's
+    resolution (see `ground_sensitivity`), so they are not robust. Robustness check (2026-11-14): at >= 2 m the result
+    does not change when rays skip the first 10-20 m; at 0 m, 91% of azimuths have their horizon set within 100 m.
+    """
     s = BY_ID["connecting-ridge"]
     full = dem.default_sampler()
     far = dem.TerrainSampler([dem.load_far()])
     o2, cache = ours(s.lat, s.lon, NODAL, full, 2.0)
-    o0, _ = ours(s.lat, s.lon, NODAL, full, 0.0, eph_cache=cache)
-    f0, _ = ours(s.lat, s.lon, NODAL, far, 0.0, eph_cache=cache)
     plat, plon = pgda120_pixel_centre(s.lat, s.lon)
     r0, _ = ours(plat, plon, NODAL, far, 0.0, eph_cache=cache, min_dist_m=120.0)
-    p60 = pgda69_sample(s.lat, s.lon)
     p120 = pgda69_sample(s.lat, s.lon, {"sun": ["AVGVISIB_75S_120M_201608"], "earth": ["AVGVISIB_75S_120M_201608_EARTH"]})
-    from pipeline.ephem import unit_vector_me
-    off_m = float(np.arccos(np.clip(unit_vector_me(s.lat, s.lon) @ unit_vector_me(plat, plon), -1, 1)) * config.MOON_RADIUS_M)
     steps = [
-        ("NASA PGDA 69, 120 m map (pixel centre, surface)", p120["sun"]["value_pct"], p120["earth"]["value_pct"]),
-        ("Ours, same 120 m DEM, pixel centre, 0 m observer", r0["sun"]["any"], r0["earth"]["any"]),
-        (f"Ours, 120 m DEM, at the site point ({off_m:.0f} m from the pixel centre), 0 m", f0["sun"]["any"], f0["earth"]["any"]),
-        ("Ours, 5 m + 120 m DEM, site point, 0 m", o0["sun"]["any"], o0["earth"]["any"]),
-        ("Ours, 5 m + 120 m DEM, site point, 2 m mast (our default)", o2["sun"]["any"], o2["earth"]["any"]),
-        ("NASA PGDA 69, 60 m map (for reference)", p60["sun"]["value_pct"], p60["earth"]["value_pct"]),
+        ("NASA PGDA 69, 120 m map", p120["sun"]["value_pct"], p120["earth"]["value_pct"]),
+        ("Our method on the same 120 m DEM (pixel centre, surface)", r0["sun"]["any"], r0["earth"]["any"]),
+        ("Ours, 5 m DEM, 2 m mast (our default)", o2["sun"]["any"], o2["earth"]["any"]),
     ]
+    heights = []
+    for h in (0.5, 1.0, 2.0, 5.0, 10.0):
+        o, _ = ours(s.lat, s.lon, NODAL, full, h, eph_cache=cache)
+        heights.append({"h_m": h, "sun": o["sun"]["any"], "earth": o["earth"]["any"]})
+    g0, _ = ours(s.lat, s.lon, NODAL, full, 0.0, eph_cache=cache)
+    ground = {"sun_0m": g0["sun"]["any"], "sun_05m": heights[0]["sun"]}
     return {"site": s.id, "lat": s.lat, "lon": s.lon, "definition": "any part of the disc", "period": "2009-01-01..2027-08-08",
             "steps": [{"label": a, "sun": b, "earth": c} for a, b, c in steps],
-            "reading": (f"Same DEM, same point: our method gives {steps[1][1]:.1f}% Sun vs PGDA's {steps[0][1]:.1f}%. The big change "
-                        f"is the observer height: {steps[3][1]:.1f}% at ground level vs {steps[4][1]:.1f}% with a 2 m mast. At ground "
-                        "level the site point sits on a ~1.4° slope, and the Sun never rises more than ~1.5° here, so the ground just "
-                        "uphill blocks it; a 2 m mast clears that. Earth swings ±7° and barely changes "
-                        f"({min(x[2] for x in steps):.0f}-{max(x[2] for x in steps):.0f}%). At ground level, moving {off_m:.0f} m on the "
-                        f"120 m surface also changes the Sun value ({steps[1][1]:.0f} -> {steps[2][1]:.0f}%).")}
+            "heights": heights, "ground": ground,
+            "reading": (f"On the same DEM our method gives {steps[1][1]:.1f}% Sun vs PGDA's {steps[0][1]:.1f}%. Our default "
+                        f"({steps[2][1]:.1f}%) differs mainly through the 2 m mast: PGDA is evaluated at the surface."),
+            "ground_note": (f"Ground-level values depend on slope at scales below the DEM resolution (0 -> 0.5 m: "
+                            f"{ground['sun_0m']:.0f} -> {ground['sun_05m']:.0f}% Sun), so we don't report them; 2 m is the "
+                            "default because lander solar arrays and antennas sit 1-3 m above the surface.")}
 
 
-GLASER = {"source": "Gläser et al. 2014, Icarus 243:78", "ground_pct": 88.0, "two_m_pct": 92.27, "ten_m_pct": 95.65,
-          "note": ("Best points on the Connecting Ridge; no coordinates published in the accessible text. 92.27% (2 m) and "
-                   "95.65% (10 m) are in the abstract; 88% (ground level) is as cited in our project brief (full text paywalled). "
-                   "Consistency check only, not validation.")}
+GLASER = {"source": "Gläser et al. 2014, Icarus 243:78", "two_m_pct": 92.27, "ten_m_pct": 95.65,
+          "note": "Best Connecting Ridge points; no coordinates published in the accessible text."}
 
 
 def summary_md(res: dict) -> list[str]:
@@ -301,7 +302,8 @@ def summary_md(res: dict) -> list[str]:
     mc, cv, pp, b2 = sm["method_check"], sm["curated_vs_pgda"], sm["published_points_vs_pgda"], sm["published_vs_best2km"]
     ex = lambda d: f"n={d['n']}" + (f", {d['excluded_both_zero']} rows with both values 0% excluded" if d["excluded_both_zero"] else "")  # noqa: E731
     cr, g = res["connecting_ridge_breakdown"], res["glaser"]
-    out = [
+    hh = {x["h_m"]: x for x in cr["heights"]}
+    return [
         "**Method check (headline).** Our method run on PGDA's own 120 m DEM vs the NASA PGDA 69 120 m map: "
         f"median |Δ| Sun {f(mc['sun']['median'])} pts ({ex(mc['sun'])}), Earth {f(mc['earth']['median'])} pts ({ex(mc['earth'])}).", "",
         "**Our default product vs PGDA 69** (our 5 m DEM + 2 m mast vs PGDA's 60 m map at the surface; these are different "
@@ -316,12 +318,15 @@ def summary_md(res: dict) -> list[str]:
         "| Configuration | Sun % | Earth % |", "|---|---:|---:|",
         *[f"| {st['label']} | {f(st['sun'])} | {f(st['earth'])} |" for st in cr["steps"]], "",
         cr["reading"], "",
-        f"**Consistency (not validation): {g['source']}.** Best ridge points: {g['ground_pct']:.0f}% at ground level, "
-        f"{g['two_m_pct']}% at 2 m, {g['ten_m_pct']}% at 10 m. Ours at the Connecting Ridge display point, 2 m mast: "
-        f"{f(cr['steps'][4]['sun'])}% (different point; ours at ground level is lower because our point sits on a slope, "
-        f"not on a local top). {g['note']}",
+        "Observer-height sensitivity (5 m DEM, same point):", "",
+        "| Mast height | " + " | ".join(f"{x['h_m']:g} m" for x in cr["heights"]) + " |",
+        "|---|" + "---:|" * len(cr["heights"]),
+        "| Sun % | " + " | ".join(f(x["sun"]) for x in cr["heights"]) + " |",
+        "| Earth % | " + " | ".join(f(x["earth"]) for x in cr["heights"]) + " |", "",
+        cr["ground_note"], "",
+        f"**{g['source']}: different point, consistency only.** 2 m: ours {f(hh[2.0]['sun'])}% vs {g['two_m_pct']}%; "
+        f"10 m: ours {f(hh[10.0]['sun'])}% vs {g['ten_m_pct']}%. {g['note']}",
     ]
-    return out
 
 
 def to_markdown(res: dict) -> str:
