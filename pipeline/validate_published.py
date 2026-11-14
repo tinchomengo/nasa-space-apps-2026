@@ -16,7 +16,7 @@ import rasterio
 import rasterio.warp
 
 from pipeline import config, dem, ephem, horizon
-from pipeline.sites import SITES
+from pipeline.sites import BY_ID, SITES
 from pipeline.validate_horizons import write_json_key, write_section
 
 STEP_MIN = 30  # statistics only
@@ -220,7 +220,7 @@ def explain_pgda(r: dict) -> str:
     gap = abs(r["pgda_sun"] - r["pgda120_sun"]) + abs(r["pgda_earth"] - r["pgda120_earth"])
     parts = [f"Replication vs PGDA 120 m: Sun {d_rep:+.1f}, Earth {r['rep_earth'] - r['pgda120_earth']:+.1f}."]
     if d_ours > 5:
-        parts.append(f"Ours vs PGDA 60 m Sun {d_ours:+.1f}: the 5 m DEM resolves the crest the coarser grid smooths away, plus our 2 m mast.")
+        parts.append(f"Ours vs PGDA 60 m Sun {d_ours:+.1f}: mostly our 2 m mast clearing near-field slopes (PGDA is at the surface), plus the 5 m DEM; see the Connecting Ridge breakdown.")
     elif d_ours < -5:
         parts.append(f"Ours vs PGDA 60 m Sun {d_ours:+.1f}: lower than PGDA.")
     else:
@@ -230,23 +230,98 @@ def explain_pgda(r: dict) -> str:
     return " ".join(parts)
 
 
+def _med(pairs: list[tuple[float, float]]) -> dict:
+    """Median/max |a-b| over pairs, EXCLUDING trivial rows where both values are 0%."""
+    keep = [abs(a - b) for a, b in pairs if not (a == 0 and b == 0)]
+    return {"median": float(np.median(keep)) if keep else None, "max": float(np.max(keep)) if keep else None,
+            "n": len(keep), "excluded_both_zero": len(pairs) - len(keep)}
+
+
 def summary(res: dict) -> dict:
     pg = res["pgda69"]
-    rep_s = np.array([r["rep_sun"] - r["pgda120_sun"] for r in pg])
-    rep_e = np.array([r["rep_earth"] - r["pgda120_earth"] for r in pg])
-    at_pt = [(r["ours"], r["pgda_at_point"]) for r in res["rows"] if "pgda_at_point" in r]
-    d_at = np.array([a - b for a, b in at_pt])
+    pub = [r for r in pg if r["id"].startswith(("bryant", "bussey"))]
+    cur = [r for r in pg if not r["id"].startswith(("bryant", "bussey"))]
     rr = [r for r in res["rows"] if "pgda_max2km" in r]
-    d_pt = np.abs([r["pgda_at_point"] - r["published"] for r in rr])
-    d_mx = np.abs([r["pgda_max2km"] - r["published"] for r in rr])
-    return {"n_points": len(pg),
-            "published_vs_pgda_point_median_abs": float(np.median(d_pt)),
-            "published_vs_pgda_best2km_median_abs": float(np.median(d_mx)),
-            "published_vs_pgda_best2km_max_abs": float(np.max(d_mx)),
-            "replication_sun_median_abs": float(np.median(np.abs(rep_s))), "replication_sun_max_abs": float(np.max(np.abs(rep_s))),
-            "replication_earth_median_abs": float(np.median(np.abs(rep_e))), "replication_earth_max_abs": float(np.max(np.abs(rep_e))),
-            "ours_vs_pgda_at_published_points_median_abs": float(np.median(np.abs(d_at))),
-            "n_published_any_part": int(len(d_at))}
+    return {
+        # headline: our method on PGDA's own 120 m DEM vs PGDA 69's 120 m map (all points)
+        "method_check": {"sun": _med([(r["rep_sun"], r["pgda120_sun"]) for r in pg]),
+                         "earth": _med([(r["rep_earth"], r["pgda120_earth"]) for r in pg])},
+        # our default product (5 m + 120 m DEM, 2 m mast) vs PGDA 69 (60 m map, surface), at curated sites
+        "curated_vs_pgda": {"sun": _med([(r["ours_sun"], r["pgda_sun"]) for r in cur]),
+                            "earth": _med([(r["ours_earth"], r["pgda_earth"]) for r in cur])},
+        # same comparison at the Bryant/Bussey published points
+        "published_points_vs_pgda": {"sun": _med([(r["ours_sun"], r["pgda_sun"]) for r in pub]),
+                                     "earth": _med([(r["ours_earth"], r["pgda_earth"]) for r in pub])},
+        # papers: best PGDA pixel within 2 km of each published point vs the published value
+        "published_vs_best2km": _med([(r["pgda_max2km"], r["published"]) for r in rr]),
+        "n_points": len(pg),
+    }
+
+
+def connecting_ridge_breakdown() -> dict:
+    """Why our Connecting Ridge value differs from PGDA 69: change one thing at a time (any-part definition)."""
+    s = BY_ID["connecting-ridge"]
+    full = dem.default_sampler()
+    far = dem.TerrainSampler([dem.load_far()])
+    o2, cache = ours(s.lat, s.lon, NODAL, full, 2.0)
+    o0, _ = ours(s.lat, s.lon, NODAL, full, 0.0, eph_cache=cache)
+    f0, _ = ours(s.lat, s.lon, NODAL, far, 0.0, eph_cache=cache)
+    plat, plon = pgda120_pixel_centre(s.lat, s.lon)
+    r0, _ = ours(plat, plon, NODAL, far, 0.0, eph_cache=cache, min_dist_m=120.0)
+    p60 = pgda69_sample(s.lat, s.lon)
+    p120 = pgda69_sample(s.lat, s.lon, {"sun": ["AVGVISIB_75S_120M_201608"], "earth": ["AVGVISIB_75S_120M_201608_EARTH"]})
+    from pipeline.ephem import unit_vector_me
+    off_m = float(np.arccos(np.clip(unit_vector_me(s.lat, s.lon) @ unit_vector_me(plat, plon), -1, 1)) * config.MOON_RADIUS_M)
+    steps = [
+        ("NASA PGDA 69, 120 m map (pixel centre, surface)", p120["sun"]["value_pct"], p120["earth"]["value_pct"]),
+        ("Ours, same 120 m DEM, pixel centre, 0 m observer", r0["sun"]["any"], r0["earth"]["any"]),
+        (f"Ours, 120 m DEM, at the site point ({off_m:.0f} m from the pixel centre), 0 m", f0["sun"]["any"], f0["earth"]["any"]),
+        ("Ours, 5 m + 120 m DEM, site point, 0 m", o0["sun"]["any"], o0["earth"]["any"]),
+        ("Ours, 5 m + 120 m DEM, site point, 2 m mast (our default)", o2["sun"]["any"], o2["earth"]["any"]),
+        ("NASA PGDA 69, 60 m map (for reference)", p60["sun"]["value_pct"], p60["earth"]["value_pct"]),
+    ]
+    return {"site": s.id, "lat": s.lat, "lon": s.lon, "definition": "any part of the disc", "period": "2009-01-01..2027-08-08",
+            "steps": [{"label": a, "sun": b, "earth": c} for a, b, c in steps],
+            "reading": (f"Same DEM, same point: our method gives {steps[1][1]:.1f}% Sun vs PGDA's {steps[0][1]:.1f}%. The big change "
+                        f"is the observer height: {steps[3][1]:.1f}% at ground level vs {steps[4][1]:.1f}% with a 2 m mast. At ground "
+                        "level the site point sits on a ~1.4° slope, and the Sun never rises more than ~1.5° here, so the ground just "
+                        "uphill blocks it; a 2 m mast clears that. Earth swings ±7° and barely changes "
+                        f"({min(x[2] for x in steps):.0f}-{max(x[2] for x in steps):.0f}%). At ground level, moving {off_m:.0f} m on the "
+                        f"120 m surface also changes the Sun value ({steps[1][1]:.0f} -> {steps[2][1]:.0f}%).")}
+
+
+GLASER = {"source": "Gläser et al. 2014, Icarus 243:78", "ground_pct": 88.0, "two_m_pct": 92.27, "ten_m_pct": 95.65,
+          "note": ("Best points on the Connecting Ridge; no coordinates published in the accessible text. 92.27% (2 m) and "
+                   "95.65% (10 m) are in the abstract; 88% (ground level) is as cited in our project brief (full text paywalled). "
+                   "Consistency check only, not validation.")}
+
+
+def summary_md(res: dict) -> list[str]:
+    sm, f = res["summary"], (lambda x: f"{x:.1f}")
+    mc, cv, pp, b2 = sm["method_check"], sm["curated_vs_pgda"], sm["published_points_vs_pgda"], sm["published_vs_best2km"]
+    ex = lambda d: f"n={d['n']}" + (f", {d['excluded_both_zero']} rows with both values 0% excluded" if d["excluded_both_zero"] else "")  # noqa: E731
+    cr, g = res["connecting_ridge_breakdown"], res["glaser"]
+    out = [
+        "**Method check (headline).** Our method run on PGDA's own 120 m DEM vs the NASA PGDA 69 120 m map: "
+        f"median |Δ| Sun {f(mc['sun']['median'])} pts ({ex(mc['sun'])}), Earth {f(mc['earth']['median'])} pts ({ex(mc['earth'])}).", "",
+        "**Our default product vs PGDA 69** (our 5 m DEM + 2 m mast vs PGDA's 60 m map at the surface; these are different "
+        "configurations, see the Connecting Ridge breakdown): curated sites Sun "
+        f"{f(cv['sun']['median'])} pts ({ex(cv['sun'])}), Earth {f(cv['earth']['median'])} pts ({ex(cv['earth'])}); "
+        f"Bryant/Bussey points Sun {f(pp['sun']['median'])} pts ({ex(pp['sun'])}), Earth {f(pp['earth']['median'])} pts ({ex(pp['earth'])}).", "",
+        "**Published studies.** Bryant 2009 and Bussey 2010 used older DEMs (2006 GSSR radar, Kaguya), whose coordinates are "
+        "shifted by hundreds of metres to a few km relative to LOLA, so their exact coordinates land on different terrain. "
+        f"The best PGDA 69 pixel within 2 km of each published point comes within a median of {f(b2['median'])} pts "
+        f"(max {f(b2['max'])}, {ex(b2)}).", "",
+        f"**Connecting Ridge breakdown** ({cr['definition']}, {cr['period']}):", "",
+        "| Configuration | Sun % | Earth % |", "|---|---:|---:|",
+        *[f"| {st['label']} | {f(st['sun'])} | {f(st['earth'])} |" for st in cr["steps"]], "",
+        cr["reading"], "",
+        f"**Consistency (not validation): {g['source']}.** Best ridge points: {g['ground_pct']:.0f}% at ground level, "
+        f"{g['two_m_pct']}% at 2 m, {g['ten_m_pct']}% at 10 m. Ours at the Connecting Ridge display point, 2 m mast: "
+        f"{f(cr['steps'][4]['sun'])}% (different point; ours at ground level is lower because our point sits on a slope, "
+        f"not on a local top). {g['note']}",
+    ]
+    return out
 
 
 def to_markdown(res: dict) -> str:
@@ -256,16 +331,7 @@ def to_markdown(res: dict) -> str:
           "Every row is evaluated at the **exact coordinates given in the paper**, not at our display sites, "
           f"with a {res['observer_height_m']:.0f} m observer, {res['step_min']}-min sampling and the paper's period where it is stated. "
           "Differences are expected; we **did not tune** anything to match. Δ = ours − published, in percentage points.", "",
-          f"**Summary.** Against NASA PGDA 69 at the same points, ours differs by a median of "
-          f"{res['summary']['ours_vs_pgda_at_published_points_median_abs']:.1f} pts ({res['summary']['n_published_any_part']} any-part rows). "
-          f"Replicating PGDA 69 on the same 120 m DEM ({res['summary']['n_points']} points): "
-          f"median |Δ| Sun {res['summary']['replication_sun_median_abs']:.1f} pts (max {res['summary']['replication_sun_max_abs']:.1f}), "
-          f"Earth {res['summary']['replication_earth_median_abs']:.1f} pts (max {res['summary']['replication_earth_max_abs']:.1f}). "
-          "Bryant 2009 and Bussey 2010 used older DEMs (2006 GSSR radar, Kaguya), whose coordinates are shifted by hundreds of "
-          "metres to a few km relative to LOLA. Their exact coordinates therefore land on different terrain, and visibility there changes a lot. "
-          f"The best PGDA 69 pixel within 2 km of each published point comes within a median of "
-          f"{res['summary']['published_vs_pgda_best2km_median_abs']:.1f} pts of the published value "
-          f"(max {res['summary']['published_vs_pgda_best2km_max_abs']:.1f}).", ""]
+          *summary_md(res), ""]
     by_src: dict[str, list] = {}
     for r in res["rows"]:
         by_src.setdefault(r["source"], []).append(r)
@@ -299,6 +365,8 @@ def to_markdown(res: dict) -> str:
 def main() -> None:
     res = run()
     res["summary"] = summary(res)
+    res["connecting_ridge_breakdown"] = connecting_ridge_breakdown()
+    res["glaser"] = GLASER
     md = to_markdown(res)
     write_section(config.ROOT / "docs" / "VALIDATION.md", "published", md)
     write_json_key("published", res)

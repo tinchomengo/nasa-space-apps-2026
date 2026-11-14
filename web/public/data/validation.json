@@ -245,7 +245,7 @@
   ]
  },
  "published": {
-  "generated_utc": "2026-11-14T19:46Z",
+  "generated_utc": "2026-11-14T20:09Z",
   "observer_height_m": 2.0,
   "step_min": 30,
   "rows": [
@@ -1673,16 +1673,102 @@
   ],
   "pgda69_note": "PGDA product 69 (Mazarico et al. 2011 method, LDEM_75S_120M, 18.6-yr cycle): fraction of timesteps with ANY part of the disc visible. 'Ours' = our default (5 m + 120 m DEM, 2 m observer). 'Replication' = same 120 m DEM only, observer at the surface (0 m), any-part definition, evaluated at the nearest 120 m pixel centre with rays starting one pixel out, over 2009-01-01..2027-08-08 (one nodal cycle; PGDA's exact period is not stated). PGDA's own ray-tracing details differ, so this is an approximate replication.",
   "summary": {
-   "n_points": 21,
-   "published_vs_pgda_point_median_abs": 53.822,
-   "published_vs_pgda_best2km_median_abs": 6.3999999999999915,
-   "published_vs_pgda_best2km_max_abs": 10.590000000000003,
-   "replication_sun_median_abs": 1.322146327101425,
-   "replication_sun_max_abs": 7.94095676922322,
-   "replication_earth_median_abs": 0.3564364296579754,
-   "replication_earth_max_abs": 5.145848177044996,
-   "ours_vs_pgda_at_published_points_median_abs": 0.32021424797040154,
-   "n_published_any_part": 25
+   "method_check": {
+    "sun": {
+     "median": 1.322146327101425,
+     "max": 7.94095676922322,
+     "n": 21,
+     "excluded_both_zero": 0
+    },
+    "earth": {
+     "median": 1.1586884538004796,
+     "max": 5.145848177044996,
+     "n": 15,
+     "excluded_both_zero": 6
+    }
+   },
+   "curated_vs_pgda": {
+    "sun": {
+     "median": 9.60435575837873,
+     "max": 26.968784238677053,
+     "n": 7,
+     "excluded_both_zero": 0
+    },
+    "earth": {
+     "median": 3.47503469257569,
+     "max": 14.707998331615869,
+     "n": 7,
+     "excluded_both_zero": 0
+    }
+   },
+   "published_points_vs_pgda": {
+    "sun": {
+     "median": 0.992581726286863,
+     "max": 8.23480533882919,
+     "n": 14,
+     "excluded_both_zero": 0
+    },
+    "earth": {
+     "median": 4.953656803572308,
+     "max": 29.997644928602973,
+     "n": 8,
+     "excluded_both_zero": 6
+    }
+   },
+   "published_vs_best2km": {
+    "median": 6.3999999999999915,
+    "max": 10.590000000000003,
+    "n": 25,
+    "excluded_both_zero": 0
+   },
+   "n_points": 21
+  },
+  "connecting_ridge_breakdown": {
+   "site": "connecting-ridge",
+   "lat": -89.4527,
+   "lon": -137.1487,
+   "definition": "any part of the disc",
+   "period": "2009-01-01..2027-08-08",
+   "steps": [
+    {
+     "label": "NASA PGDA 69, 120 m map (pixel centre, surface)",
+     "sun": 75.24000000000001,
+     "earth": 57.33600000000001
+    },
+    {
+     "label": "Ours, same 120 m DEM, pixel centre, 0 m observer",
+     "sun": 75.19566710829776,
+     "earth": 58.13582609549045
+    },
+    {
+     "label": "Ours, 120 m DEM, at the site point (55 m from the pixel centre), 0 m",
+     "sun": 54.4080303253349,
+     "earth": 57.18693262672359
+    },
+    {
+     "label": "Ours, 5 m + 120 m DEM, site point, 0 m",
+     "sun": 55.1057461111929,
+     "earth": 56.1917292310712
+    },
+    {
+     "label": "Ours, 5 m + 120 m DEM, site point, 2 m mast (our default)",
+     "sun": 89.89400853820109,
+     "earth": 58.18520290495117
+    },
+    {
+     "label": "NASA PGDA 69, 60 m map (for reference)",
+     "sun": 68.484,
+     "earth": 57.496
+    }
+   ],
+   "reading": "Same DEM, same point: our method gives 75.2% Sun vs PGDA's 75.2%. The big change is the observer height: 55.1% at ground level vs 89.9% with a 2 m mast. At ground level the site point sits on a ~1.4\u00b0 slope, and the Sun never rises more than ~1.5\u00b0 here, so the ground just uphill blocks it; a 2 m mast clears that. Earth swings \u00b17\u00b0 and barely changes (56-58%). At ground level, moving 55 m on the 120 m surface also changes the Sun value (75 -> 54%)."
+  },
+  "glaser": {
+   "source": "Gl\u00e4ser et al. 2014, Icarus 243:78",
+   "ground_pct": 88.0,
+   "two_m_pct": 92.27,
+   "ten_m_pct": 95.65,
+   "note": "Best points on the Connecting Ridge; no coordinates published in the accessible text. 92.27% (2 m) and 95.65% (10 m) are in the abstract; 88% (ground level) is as cited in our project brief (full text paywalled). Consistency check only, not validation."
   }
  }
 }

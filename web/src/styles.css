@@ -399,8 +399,22 @@ table.metrics {
   color: var(--text);
   border-bottom-color: var(--earth);
 }
-.prose {
-  max-width: 900px;
+.prose p,
+.prose ul,
+.prose h3,
+.prose h4 {
+  max-width: 80ch;
+}
+.prose h4 {
+  margin: 14px 0 6px;
+  font-size: 0.95rem;
+}
+table.metrics.wrap th,
+table.metrics.wrap td {
+  white-space: normal;
+}
+table.metrics.wrap th[scope='row'] {
+  min-width: 14ch;
 }
 .prose h3 {
   margin: 18px 0 6px;
