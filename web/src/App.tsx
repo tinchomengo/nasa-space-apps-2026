@@ -12,6 +12,7 @@ import { Tabs } from './components/Tabs'
 import { ValidationTab } from './components/ValidationTab'
 import { MethodTab } from './components/MethodTab'
 import { AboutTab } from './components/AboutTab'
+import { Explain, Faq } from './components/Educator'
 
 const MAX_COMPARE = 3
 const SPEEDS = [
@@ -26,6 +27,7 @@ interface UrlState {
   base: number
   slip: number
   pt: string | null
+  edu: boolean
 }
 
 function readUrl(): Partial<UrlState> {
@@ -43,6 +45,7 @@ function readUrl(): Partial<UrlState> {
   if (Number.isFinite(slip) && slip !== 0) out.slip = Math.max(-60, Math.min(60, Math.round(slip)))
   const pt = q.get('pt')
   if (pt) out.pt = pt
+  if (q.get('edu') === '1') out.edu = true
   return out
 }
 
@@ -53,6 +56,7 @@ function writeUrl(s: UrlState) {
   q.set('t', new Date(s.base * 1000).toISOString().slice(0, 16) + 'Z')
   if (s.slip) q.set('slip', String(s.slip))
   if (s.pt) q.set('pt', s.pt)
+  if (s.edu) q.set('edu', '1')
   window.history.replaceState(null, '', `?${q.toString()}`)
 }
 
@@ -72,6 +76,7 @@ export default function App() {
   const [lonIn, setLonIn] = useState('')
   const custom = useCustomPoint(pt, index?.sites)
   const [tab, setTab] = useState('validation')
+  const [edu, setEdu] = useState<boolean>(init.edu ?? false)
 
   useEffect(() => {
     loadSites().then(setIndex).catch((e) => setError(String(e)))
@@ -85,7 +90,7 @@ export default function App() {
   }, [ids, data])
 
   const t = base + slip * DAY
-  useEffect(() => writeUrl({ ids, base, slip, pt }), [ids, base, slip, pt])
+  useEffect(() => writeUrl({ ids, base, slip, pt, edu }), [ids, base, slip, pt, edu])
 
   // play: advance the base epoch
   const last = useRef<number | null>(null)
@@ -121,9 +126,14 @@ export default function App() {
   return (
     <div className="app">
       <header className="header">
-        <h1>
-          T-Minus <span className="sub">Mission Clock</span>
-        </h1>
+        <div className="header-row">
+          <h1>
+            T-Minus <span className="sub">Mission Clock</span>
+          </h1>
+          <button className={edu ? 'edu-toggle on' : 'edu-toggle'} aria-pressed={edu} onClick={() => setEdu((v) => !v)}>
+            💡 Educator mode {edu ? 'on' : 'off'}
+          </button>
+        </div>
         <p className="value-prop">
           Pick a south-pole site and a date. T-Minus counts down to sunset and Earthset over real NASA LOLA terrain, and
           tells you whether Malargüe can still hear you.
@@ -226,29 +236,49 @@ export default function App() {
         </form>
       </section>
 
-      {primarySummary && primarySummary.horizon_source !== 'smooth-sphere' && (
-        <Explore site={primarySummary} selected={selectedK} onPick={(p) => setPt(`${p.site.id}:${p.k}`)} />
-      )}
-
       {outOfSpan && (
         <p className="warn" role="status">
           The selected time is outside the precomputed span ({index?.span[0].slice(0, 10)} to {index?.span[1].slice(0, 10)}).
         </p>
       )}
 
-      <section className="cards" aria-live="polite">
+      <Explain on={edu}>
+        <strong>T-SUNSET</strong> is the time until the Sun sinks behind the hills around the lander. Solar panels need
+        it: after sunset the lander lives on its battery. <strong>T-EARTHSET</strong> is the time until Earth hides behind
+        the hills; after that the lander cannot talk directly to Earth. Green means more than 3 days left, amber 1–3 days,
+        red less than a day (or already down). The 📡 box checks the second horizon: is an antenna on Earth, such as
+        Malargüe in Argentina, pointing up at the Moon right now?
+      </Explain>
+
+      <section className="cards">
         {sites.map((s) => (
           <CountdownCard key={s.meta.id} site={s} t={tSec} stations={stations} />
         ))}
         {sites.length === 0 && !error && <p className="muted">Loading…</p>}
       </section>
 
+      <Explain on={edu}>
+        This strip is the 360° view from the lander. Grey is the real skyline: crater rims and mountains from NASA's laser
+        maps. The vertical scale is stretched so you can see them; in reality they are only a few degrees tall. The
+        golden line is the Sun's path over a month: it circles the whole horizon, skimming it. The blue loop is Earth,
+        which barely moves. Solid lines mean "above the hills"; faint lines mean "hidden".
+      </Explain>
       {sites.map((s) => (
         <Panorama key={s.meta.id} site={s} t={tSec} />
       ))}
 
       {sites.length > 0 && <Timeline sites={sites} t={tSec} onPick={(v) => setBase(v - slip * DAY)} />}
       {sites.length > 0 && <Metrics sites={sites} t={tSec} />}
+
+      <Explain on={edu}>
+        Move a few hundred metres and the answer changes. Click around the map: each dot has its own skyline, and the
+        countdowns, timeline and statistics above are recomputed for it. The point appears as an extra column.
+      </Explain>
+      {primarySummary && primarySummary.horizon_source !== 'smooth-sphere' && (
+        <Explore site={primarySummary} selected={selectedK} onPick={(p) => setPt(`${p.site.id}:${p.k}`)} />
+      )}
+
+      {edu && <Faq />}
 
       <Tabs
         active={tab}

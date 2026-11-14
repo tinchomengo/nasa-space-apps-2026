@@ -341,6 +341,45 @@ table.metrics {
   font-weight: 500;
 }
 
+/* educator */
+.header-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.edu-toggle.on {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+.explain {
+  display: flex;
+  gap: 10px;
+  background: #1a1f2a;
+  border-left: 4px solid var(--warn);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.92rem;
+  max-width: 900px;
+}
+.explain-icon {
+  font-size: 1.1rem;
+}
+.faq details {
+  border-top: 1px solid var(--grid);
+  padding: 8px 0;
+}
+.faq summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.faq p {
+  margin: 6px 0 0;
+  font-size: 0.92rem;
+  max-width: 80ch;
+}
+
 /* tabs */
 .tablist {
   display: flex;
