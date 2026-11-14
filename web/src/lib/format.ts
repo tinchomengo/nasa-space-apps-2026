@@ -1,13 +1,15 @@
 export const HOUR = 3600
 export const DAY = 86400
 
-/** "41:12:05" — total hours (can exceed 24), minutes, seconds. */
+/** Countdown body: "17:07:00" under a day, "7d 17:07:00" from 24 h up. */
 export function hms(sec: number): string {
   const s = Math.max(0, Math.round(sec))
-  const h = Math.floor(s / 3600)
+  const d = Math.floor(s / DAY)
+  const h = Math.floor((s % DAY) / 3600)
   const m = Math.floor((s % 3600) / 60)
   const r = s % 60
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`
+  const clock = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`
+  return d > 0 ? `${d}d ${clock}` : clock
 }
 
 /** Human duration: "3 d 4 h", "5 h 12 min", "8 min". */
