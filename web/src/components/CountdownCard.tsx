@@ -39,7 +39,7 @@ function Row({ site, body, t }: { site: SiteData; body: Body; t: number }) {
             </>
           ) : (
             <>
-              <span className="mono big">—</span> <span className={`body-tag ${body}`}>{icon} up beyond data span</span>
+              <span className="mono big">—</span> <span className={`body-tag ${body}`}>{icon} never sets in 2026–2028 (data span)</span>
             </>
           )
         ) : (
