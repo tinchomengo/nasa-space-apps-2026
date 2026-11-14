@@ -1,0 +1,247 @@
+{
+ "horizons": {
+  "generated_utc": "2026-11-14T15:47Z",
+  "ours": "Skyfield + DE421 + MOON_ME_DE421 frame (moon_pa_de421_1900-2050.bpc), apparent, no refraction",
+  "reference": "JPL Horizons API, observer table, QUANTITIES=4, APPARENT=AIRLESS, CENTER=coord@301 (GEODETIC)",
+  "horizons_header": {
+   "Center body name": "Center body name: Moon (301) {source: DE441}",
+   "Center pole/equ": "Center pole/equ : MEAN_ME (high precision) {East-longitude positive}",
+   "Center radii": "Center radii : 1737.4, 1737.4, 1737.4 km {Equator_a, b, pole_c}",
+   "Atmos refraction": "Atmos refraction: NO (AIRLESS)"
+  },
+  "observer_alt_km": 0.0,
+  "epochs": [
+   "2026-12-01 +24 h every 1 h",
+   "2027-06-15 +24 h every 1 h",
+   "2028-09-01 +24 h every 1 h"
+  ],
+  "target_deg": 0.05,
+  "overall": {
+   "n": 1050,
+   "max_abs_daz": 4.9328125555803126e-05,
+   "mean_abs_daz": 6.631774872104525e-06,
+   "max_abs_del": 1.0288625750920488e-05,
+   "mean_abs_del": 5.816627698018374e-06,
+   "max_sep": 1.1131846416284069e-05,
+   "mean_sep": 8.272751899889549e-06
+  },
+  "rows": [
+   {
+    "site": "connecting-ridge",
+    "name": "Shackleton Connecting Ridge",
+    "lat": -89.4632,
+    "lon": -137.4896,
+    "body": "sun",
+    "n": 75,
+    "max_abs_daz": 6.505599770889603e-06,
+    "mean_abs_daz": 3.6753111506489706e-06,
+    "max_abs_del": 1.0288625750920488e-05,
+    "mean_abs_del": 4.884214300114505e-06,
+    "max_sep": 1.1033187042674263e-05,
+    "mean_sep": 7.105266581235007e-06
+   },
+   {
+    "site": "connecting-ridge",
+    "name": "Shackleton Connecting Ridge",
+    "lat": -89.4632,
+    "lon": -137.4896,
+    "body": "earth",
+    "n": 75,
+    "max_abs_daz": 8.187228047518147e-06,
+    "mean_abs_daz": 4.847006972568124e-06,
+    "max_abs_del": 9.923737714689906e-06,
+    "mean_abs_del": 7.710118215289441e-06,
+    "max_sep": 1.1099057401270736e-05,
+    "mean_sep": 9.429002850942925e-06
+   },
+   {
+    "site": "shackleton-rim",
+    "name": "Shackleton rim",
+    "lat": -89.7668,
+    "lon": -171.8699,
+    "body": "sun",
+    "n": 75,
+    "max_abs_daz": 6.503076122044149e-06,
+    "mean_abs_daz": 3.6899607554611674e-06,
+    "max_abs_del": 1.0273211238143176e-05,
+    "mean_abs_del": 4.8811613892688995e-06,
+    "max_sep": 1.1066171232981577e-05,
+    "mean_sep": 7.112241076921504e-06
+   },
+   {
+    "site": "shackleton-rim",
+    "name": "Shackleton rim",
+    "lat": -89.7668,
+    "lon": -171.8699,
+    "body": "earth",
+    "n": 75,
+    "max_abs_daz": 8.222077923392135e-06,
+    "mean_abs_daz": 4.887731669593146e-06,
+    "max_abs_del": 9.896883136795154e-06,
+    "mean_abs_del": 7.68378087376694e-06,
+    "max_sep": 1.1099057401270736e-05,
+    "mean_sep": 9.431738748502663e-06
+   },
+   {
+    "site": "de-gerlache-rim",
+    "name": "de Gerlache rim",
+    "lat": -88.6834,
+    "lon": -67.9321,
+    "body": "sun",
+    "n": 75,
+    "max_abs_daz": 6.540526101161959e-06,
+    "mean_abs_daz": 3.694441005563931e-06,
+    "max_abs_del": 1.0236571461152977e-05,
+    "mean_abs_del": 4.84440136082546e-06,
+    "max_sep": 1.1099057401270736e-05,
+    "mean_sep": 7.112530212707339e-06
+   },
+   {
+    "site": "de-gerlache-rim",
+    "name": "de Gerlache rim",
+    "lat": -88.6834,
+    "lon": -67.9321,
+    "body": "earth",
+    "n": 75,
+    "max_abs_daz": 8.055257524119952e-06,
+    "mean_abs_daz": 4.714034104533008e-06,
+    "max_abs_del": 1.0004756667347792e-05,
+    "mean_abs_del": 7.789333332214691e-06,
+    "max_sep": 1.1099057401270736e-05,
+    "mean_sep": 9.42929731205396e-06
+   },
+   {
+    "site": "malapert",
+    "name": "Malapert massif",
+    "lat": -85.9948,
+    "lon": -0.2358,
+    "body": "sun",
+    "n": 75,
+    "max_abs_daz": 6.588479209312936e-06,
+    "mean_abs_daz": 3.871271533929151e-06,
+    "max_abs_del": 9.950620262433318e-06,
+    "mean_abs_del": 4.723868802868718e-06,
+    "max_sep": 1.1033187042674263e-05,
+    "mean_sep": 7.105495338666323e-06
+   },
+   {
+    "site": "malapert",
+    "name": "Malapert massif",
+    "lat": -85.9948,
+    "lon": -0.2358,
+    "body": "earth",
+    "n": 75,
+    "max_abs_daz": 8.120793722810049e-06,
+    "mean_abs_daz": 4.818968084615942e-06,
+    "max_abs_del": 9.941837092242167e-06,
+    "mean_abs_del": 7.721889310167522e-06,
+    "max_sep": 1.1099057401270736e-05,
+    "mean_sep": 9.425626167878667e-06
+   },
+   {
+    "site": "mons-mouton",
+    "name": "Mons Mouton (IM-2 landing site)",
+    "lat": -84.7906,
+    "lon": 29.1957,
+    "body": "sun",
+    "n": 75,
+    "max_abs_daz": 6.571507924491016e-06,
+    "mean_abs_daz": 3.960930917704293e-06,
+    "max_abs_del": 9.868048630318205e-06,
+    "mean_abs_del": 4.713850424183189e-06,
+    "max_sep": 1.1033187042674263e-05,
+    "mean_sep": 7.098842200408939e-06
+   },
+   {
+    "site": "mons-mouton",
+    "name": "Mons Mouton (IM-2 landing site)",
+    "lat": -84.7906,
+    "lon": 29.1957,
+    "body": "earth",
+    "n": 75,
+    "max_abs_daz": 8.413502087023517e-06,
+    "mean_abs_daz": 5.151634014358327e-06,
+    "max_abs_del": 9.719978730338141e-06,
+    "mean_abs_del": 7.506114704766512e-06,
+    "max_sep": 1.1099057401270736e-05,
+    "mean_sep": 9.438750388231856e-06
+   },
+   {
+    "site": "chandrayaan-3",
+    "name": "Chandrayaan-3 (Shiv Shakti point)",
+    "lat": -69.373,
+    "lon": 32.319,
+    "body": "sun",
+    "n": 75,
+    "max_abs_daz": 7.273147986097683e-06,
+    "mean_abs_daz": 4.803441395324626e-06,
+    "max_abs_del": 8.347411665887705e-06,
+    "mean_abs_del": 4.181664922337329e-06,
+    "max_sep": 1.1066171232981577e-05,
+    "mean_sep": 7.101146881054758e-06
+   },
+   {
+    "site": "chandrayaan-3",
+    "name": "Chandrayaan-3 (Shiv Shakti point)",
+    "lat": -69.373,
+    "lon": 32.319,
+    "body": "earth",
+    "n": 75,
+    "max_abs_daz": 9.374291551011993e-06,
+    "mean_abs_daz": 6.286886277090768e-06,
+    "max_abs_del": 8.983919148164432e-06,
+    "mean_abs_del": 6.799983936905581e-06,
+    "max_sep": 1.1131846416284069e-05,
+    "mean_sep": 9.450623648036785e-06
+   },
+   {
+    "site": "apollo-11",
+    "name": "Apollo 11 (Tranquility Base)",
+    "lat": 0.6741,
+    "lon": 23.473,
+    "body": "sun",
+    "n": 75,
+    "max_abs_daz": 4.9328125555803126e-05,
+    "mean_abs_daz": 1.1738810247617066e-05,
+    "max_abs_del": 6.496764541452649e-06,
+    "mean_abs_del": 3.872281724000004e-06,
+    "max_sep": 1.1066171232981577e-05,
+    "mean_sep": 7.108534187771773e-06
+   },
+   {
+    "site": "apollo-11",
+    "name": "Apollo 11 (Tranquility Base)",
+    "lat": 0.6741,
+    "lon": 23.473,
+    "body": "earth",
+    "n": 75,
+    "max_abs_daz": 3.488330031586884e-05,
+    "mean_abs_daz": 2.7181076715502663e-05,
+    "max_abs_del": 5.763342599607313e-06,
+    "mean_abs_del": 4.120124475548437e-06,
+    "max_sep": 1.1131846416284069e-05,
+    "mean_sep": 9.469431004041195e-06
+   }
+  ],
+  "controls": [
+   {
+    "perturbation": "baseline",
+    "site": "connecting-ridge",
+    "body": "earth",
+    "max_sep": 1.1099057401270736e-05
+   },
+   {
+    "perturbation": "site lon +0.001\u00b0",
+    "site": "connecting-ridge",
+    "body": "earth",
+    "max_sep": 0.0010046231547640872
+   },
+   {
+    "perturbation": "time +10 s",
+    "site": "connecting-ridge",
+    "body": "earth",
+    "max_sep": 0.00017262281270945015
+   }
+  ]
+ }
+}
