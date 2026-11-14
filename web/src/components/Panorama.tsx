@@ -54,7 +54,7 @@ export function Panorama({ site, t, windowDays = 14 }: { site: SiteData; t: numb
     ctx.beginPath()
     ctx.moveTo(PAD.l, PAD.t + ph)
     for (let k = 0; k <= site.horizon.length; k++) {
-      const az = k * 0.5
+      const az = (k * 360) / site.horizon.length
       ctx.lineTo(X(az === 360 ? 359.999 : az), Y(site.horizon[k % site.horizon.length]))
     }
     ctx.lineTo(PAD.l + pw, PAD.t + ph)

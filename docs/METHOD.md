@@ -54,6 +54,13 @@ See `pipeline/sites.py` for the source of every coordinate:
 
 Validation against published studies is evaluated at the **exact published points**, never at these display sites.
 
+## Custom points and Explore (computed in the browser)
+
+- **Ephemeris:** the pipeline exports hourly *apparent* Moon-centre → Sun and Moon-centre → Earth vectors in MOON_ME_DE421 (`ephem_vectors.bin`, float32, km). For any point, the browser subtracts the site's position vector (R + h + 2 m)·r̂ and projects onto the same east/north/up basis as the pipeline. Lunar parallax (up to ~0.26° for Earth) is therefore exact.
+- **Check:** `npm run test:geo` compares against Skyfield at all 10 curated sites. The worst error is **2.7×10⁻⁵°**, against a 0.001° tolerance. Rebuilding a curated site entirely in the browser reproduces the pipeline's full-span statistics to within 0.02 percentage points.
+- **Terrain:** each polar curated site has a 10 × 10 km neighbourhood of 21 × 21 points at 500 m on the polar-stereographic grid. Each point has its own horizon mask (360 × 1° bins, same ray-march, 2 m observer), shipped as int16 centidegrees. A typed coordinate inside a box snaps to the nearest grid point, and the UI shows the snap distance. Outside the boxes, the horizon is a **smooth sphere** and is labelled as such; near the pole real terrain would differ a lot.
+- **Resolution:** browser-computed points use hourly samples. Rise/set times are interpolated to a few minutes, and sub-hour flickers can be missed: 2 of about 125 events at Malapert and Mons Mouton.
+
 ## Known limitations
 
 - A summit is not always the best point for Earth visibility. At the Malapert summit the horizon in Earth's direction is set by the summit's own rounded shoulder, 0.1–0.5 km away, at about −1.7°. A 2 m mast there loses Earth's centre about 20% of the time, even though a sharp peak of the same height would have a dip of about 4.4°.

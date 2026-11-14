@@ -1,0 +1,1 @@
+{"t0": 1793491200, "stepSec": 3600, "n": 19008, "layout": ["sun_x", "sun_y", "sun_z", "earth_x", "earth_y", "earth_z"], "units": "km", "frame": "MOON_ME_DE421", "origin": "Moon centre", "apparent": true, "moon_radius_km": 1737.4, "sun_radius_km": 696340.0, "earth_radius_km": 6371.0, "observer_height_m": 2.0}

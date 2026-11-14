@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": ".test-build",
+    "rootDir": "src",
+    "module": "ESNext"
+  },
+  "include": ["src/lib/geo.ts", "src/lib/custom.ts", "src/lib/sky.ts", "src/lib/data.ts", "src/vite-env.d.ts"]
+}

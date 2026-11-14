@@ -25,3 +25,5 @@ flight/**/build-fprime-automatic-*/
 # OS / editor
 .DS_Store
 *.swp
+
+web/.test-build/

@@ -1,5 +1,5 @@
 // Pure functions over a site's precomputed series: state at time t, countdowns, interpolation, window stats.
-import type { Hourly, SiteData, SiteEvent } from './data'
+import type { Hourly, SiteData, SiteEvent } from './data.js'
 
 export type Body = 'sun' | 'earth'
 

@@ -6,6 +6,8 @@ import { CountdownCard } from './components/CountdownCard'
 import { Panorama } from './components/Panorama'
 import { Timeline } from './components/Timeline'
 import { Metrics } from './components/Metrics'
+import { Explore } from './components/Explore'
+import { useCustomPoint } from './lib/useCustomPoint'
 
 const MAX_COMPARE = 3
 const SPEEDS = [
@@ -19,6 +21,7 @@ interface UrlState {
   ids: string[]
   base: number
   slip: number
+  pt: string | null
 }
 
 function readUrl(): Partial<UrlState> {
@@ -34,6 +37,8 @@ function readUrl(): Partial<UrlState> {
   }
   const slip = Number(q.get('slip'))
   if (Number.isFinite(slip) && slip !== 0) out.slip = Math.max(-60, Math.min(60, Math.round(slip)))
+  const pt = q.get('pt')
+  if (pt) out.pt = pt
   return out
 }
 
@@ -43,6 +48,7 @@ function writeUrl(s: UrlState) {
   if (s.ids.length > 1) q.set('cmp', s.ids.slice(1).join(','))
   q.set('t', new Date(s.base * 1000).toISOString().slice(0, 16) + 'Z')
   if (s.slip) q.set('slip', String(s.slip))
+  if (s.pt) q.set('pt', s.pt)
   window.history.replaceState(null, '', `?${q.toString()}`)
 }
 
@@ -57,6 +63,10 @@ export default function App() {
   const [speed, setSpeed] = useState(1)
   const [data, setData] = useState<Record<string, SiteData>>({})
   const [stations, setStations] = useState<StationsData | null>(null)
+  const [pt, setPt] = useState<string | null>(init.pt ?? null)
+  const [latIn, setLatIn] = useState('')
+  const [lonIn, setLonIn] = useState('')
+  const custom = useCustomPoint(pt, index?.sites)
 
   useEffect(() => {
     loadSites().then(setIndex).catch((e) => setError(String(e)))
@@ -70,7 +80,7 @@ export default function App() {
   }, [ids, data])
 
   const t = base + slip * DAY
-  useEffect(() => writeUrl({ ids, base, slip }), [ids, base, slip])
+  useEffect(() => writeUrl({ ids, base, slip, pt }), [ids, base, slip, pt])
 
   // play: advance the base epoch
   const last = useRef<number | null>(null)
@@ -92,7 +102,10 @@ export default function App() {
     return () => cancelAnimationFrame(raf)
   }, [playing, speed])
 
-  const sites = ids.map((id) => data[id]).filter(Boolean) as SiteData[]
+  const curated = ids.map((id) => data[id]).filter(Boolean) as SiteData[]
+  const sites = custom.data ? [...curated, custom.data] : curated
+  const primarySummary = index?.sites.find((s) => s.id === ids[0])
+  const selectedK = pt && primarySummary && pt.startsWith(`${primarySummary.id}:`) ? Number(pt.split(':')[1]) : null
   const primary = sites[0]
   const span = primary ? spanOf(primary) : null
   const outOfSpan = span && (t < span[0] || t > span[1])
@@ -180,6 +193,37 @@ export default function App() {
           <span className="mono now-label">{utcLabel(tSec)}</span>
         </div>
       </section>
+
+      <section className="panel custom-form" aria-label="Custom coordinates">
+        <form
+          className="control-group"
+          onSubmit={(e) => {
+            e.preventDefault()
+            const la = Number(latIn), lo = Number(lonIn)
+            if (Number.isFinite(la) && Number.isFinite(lo) && latIn !== '' && lonIn !== '') setPt(`${la},${lo}`)
+          }}
+        >
+          <span className="control-label">Custom point</span>
+          <label className="sr-only" htmlFor="lat-in">Latitude (degrees, negative = south)</label>
+          <input id="lat-in" inputMode="decimal" placeholder="lat, e.g. -89.45" value={latIn} onChange={(e) => setLatIn(e.target.value)} size={12} />
+          <label className="sr-only" htmlFor="lon-in">East longitude (degrees)</label>
+          <input id="lon-in" inputMode="decimal" placeholder="lon °E, e.g. -137.1" value={lonIn} onChange={(e) => setLonIn(e.target.value)} size={12} />
+          <button type="submit">Compute</button>
+          {pt && <button type="button" className="ghost" onClick={() => setPt(null)}>Clear point</button>}
+          {custom.busy && <span className="muted">computing…</span>}
+          {custom.error && <span className="error">{custom.error}</span>}
+          {custom.data && !custom.busy && (
+            <span className="muted">
+              {custom.data.meta.name} · horizon: {custom.data.meta.horizon_source === 'smooth-sphere' ? 'smooth sphere' : `LOLA ${custom.data.meta.horizon_source} (500 m grid)`}
+              {custom.note ? ` · ${custom.note}` : ''} · hourly resolution
+            </span>
+          )}
+        </form>
+      </section>
+
+      {primarySummary && primarySummary.horizon_source !== 'smooth-sphere' && (
+        <Explore site={primarySummary} selected={selectedK} onPick={(p) => setPt(`${p.site.id}:${p.k}`)} />
+      )}
 
       {outOfSpan && (
         <p className="warn" role="status">

@@ -10,7 +10,8 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:geo": "tsc -p tsconfig.test.json && node test/geo.test.mjs"
   },
   "dependencies": {
     "react": "19.3.1",
