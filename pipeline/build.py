@@ -70,10 +70,12 @@ def build_site(site, t, unix, any_station_up, station_ups, flight_csv: bool) -> 
     earth_clear = earth["el_deg"] - horizon.interp_mask(hz.el_deg, earth["az_deg"])
     sun_frac = metrics.disc_visible_fraction(sun_clear, sun["ang_radius_deg"])
 
-    events = (metrics.crossings(sun_clear + sun["ang_radius_deg"], unix, "sunrise", "sunset")
+    # Default Sun definition (>= 50% of disc) => events at Sun-centre crossings
+    events = (metrics.crossings(sun_clear, unix, "sunrise", "sunset")
               + metrics.crossings(earth_clear, unix, "earthrise", "earthset"))
     events.sort(key=lambda e: e["t"])
-    stats = metrics.window_stats(sun_frac, earth_clear, earth["ang_radius_deg"], STEP_S, any_station_up)
+    stats = metrics.window_stats(sun_clear, sun["ang_radius_deg"], earth_clear, earth["ang_radius_deg"],
+                                 STEP_S, any_station_up)
     stats["link_pct_by_station"] = {k: metrics.pct((earth_clear > 0) & v) for k, v in station_ups.items()}
     stats["earth_el_range_deg"] = [float(earth["el_deg"].min()), float(earth["el_deg"].max())]
     stats["sun_el_range_deg"] = [float(sun["el_deg"].min()), float(sun["el_deg"].max())]
@@ -86,7 +88,9 @@ def build_site(site, t, unix, any_station_up, station_ups, flight_csv: bool) -> 
             "horizon_source": src, "site_height_m": round(hz.site_height_m, 1),
             "observer_height_m": config.OBSERVER_HEIGHT_M, "span": [config.SPAN_START, config.SPAN_END],
             "compute_step_s": STEP_S, "mean_earth_az_deg": round(mean_earth_az, 2),
-            "initial": {"sunUp": bool(sun_frac[0] > 0), "earthUp": bool(earth_clear[0] > 0)},
+            "initial": {"sunUp": bool(sun_clear[0] > 0), "earthUp": bool(earth_clear[0] > 0)},
+            "definitions": {"sun": "at least 50% of the disc above the terrain (centre clearance > 0)",
+                            "earth": "Earth's centre above the terrain (clearance > 0)"},
             "generated_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%MZ"),
         },
         "horizon": r2(hz.el_deg, 3),
@@ -94,7 +98,7 @@ def build_site(site, t, unix, any_station_up, station_ups, flight_csv: bool) -> 
             "t0": int(unix[0]), "stepSec": STEP_S * HOURLY_EVERY,
             "sunAz": r2(sun["az_deg"][sl]), "sunEl": r2(sun["el_deg"][sl], 3),
             "earthAz": r2(earth["az_deg"][sl]), "earthEl": r2(earth["el_deg"][sl]),
-            "sunFrac": r2(sun_frac[sl], 2), "earthClear": r2(earth_clear[sl]),
+            "sunFrac": r2(sun_frac[sl], 2), "sunClear": r2(sun_clear[sl]), "earthClear": r2(earth_clear[sl]),
         },
         "events": events,
         "stats": stats,
@@ -110,7 +114,9 @@ def build_site(site, t, unix, any_station_up, station_ups, flight_csv: bool) -> 
     summary = {"id": site.id, "name": site.name, "lat": site.lat, "lon": site.lon, "horizon_source": src,
                "coord_source": site.coord_source, "source": site.source, "why": site.why,
                "tags": list(site.tags), "site_height_m": round(hz.site_height_m, 1),
-               "stats": {k: stats[k] for k in ("sunlit_pct", "earth_visible_pct", "both_pct", "link_pct")},
+               "stats": {k: stats[k] for k in ("sunlit_pct", "sunlit_any_part_pct", "sunlit_full_disc_pct",
+                                               "earth_visible_pct", "both_pct", "link_pct",
+                                               "longest_dark_h", "longest_dte_gap_h")},
                "seconds": round(time.perf_counter() - t0, 2)}
     return doc, summary
 

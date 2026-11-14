@@ -4,10 +4,10 @@ Coordinate sources:
 - "pgda78-roi": PGDA product 78 publishes, per site, ROI polygons of regions with average
   illumination > 70% (`SiteNN_ROIs.tgz`), each with a representative X/Y point (polar
   stereographic m, R = 1737.4 km). We use the point of the LARGEST ROI. (Site01/04/07/11.)
-- "pgda78-tile-max": no ROI file is published for this site (Site06/23 return an error page).
-  The tile centre is an arbitrary point (Site23's sat on a flank, Site06's on a 14.7° slope),
-  so we use the HIGHEST DEM point in the 5 m tile (the massif summit), converted with the
-  file's own CRS. Display sites only; validation uses the exact published points.
+- "lola120-local-summit": no ROI file is published for this site (Site06/23 return an error
+  page) and the tile centre is an arbitrary point (Site23's sat on a flank, Site06's on a
+  14.7° slope). We use the highest point of the LOLA 120 m DEM within 15 km of the PGDA tile
+  centre (the nominal site). Display sites only; validation uses the exact published points.
 - "published": coordinates published by the mission / agency (cited in `source`).
 """
 from dataclasses import dataclass, field, asdict
@@ -58,8 +58,8 @@ SITES: list[Site] = [
         pgda_site="Site11", tags=("south-pole", "artemis-candidate"),
     ),
     Site(
-        "malapert", "Malapert massif (summit)", -85.9877, 2.0681,
-        "pgda78-tile-max", "PGDA product 78 Site23: highest DEM point in the tile (5174 m)",
+        "malapert", "Malapert massif (summit)", -85.9883, 2.0625,
+        "lola120-local-summit", "Highest LDEM_75S_120M point within 15 km of the PGDA Site23 tile centre (5172 m; 4.9 km from it)",
         "Earth almost always in view; Artemis candidate region.",
         pgda_site="Site23", tags=("south-pole", "artemis-candidate"),
     ),
@@ -71,10 +71,8 @@ SITES: list[Site] = [
         pgda_site="Site20v2", tags=("south-pole", "artemis-candidate"),
     ),
     Site(
-        "nobile-rim-1", "Nobile Rim 1 (high point)", -85.2330, 36.5916,
-        # The tile centre sat on a ~14.7° slope (12.8° horizon 100 m away): not a plausible
-        # landing point. Replaced by the tile's highest point. Owner may override.
-        "pgda78-tile-max", "PGDA product 78 Site06: highest DEM point in the tile (6800 m)",
+        "nobile-rim-1", "Nobile Rim 1 (local summit)", -85.2305, 36.5706,
+        "lola120-local-summit", "Highest LDEM_75S_120M point within 15 km of the PGDA Site06 tile centre (6799 m; 6.6 km from it)",
         "Artemis candidate region; Griffin-1 area.",
         pgda_site="Site06", tags=("south-pole", "artemis-candidate"),
     ),

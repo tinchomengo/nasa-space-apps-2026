@@ -4,8 +4,9 @@ Definitions (documented in METHOD.md):
 - clearance = body elevation - terrain horizon elevation at the body's azimuth (deg).
 - Disc visible fraction: area fraction of a disc of angular radius r above a locally straight
   horizon at offset `clearance` from the disc centre (circular-segment formula).
-- Sun "up" (sunlit): any part of the solar disc visible (fraction > 0). Sunrise/sunset events
-  are crossings of the Sun's top limb (clearance + r_sun = 0).
+- Sun: three definitions, reported side by side: any part of the disc (clearance > -r),
+  at least 50% of the disc (clearance >= 0, i.e. the centre), and the full disc (clearance > r).
+  UI/countdown DEFAULT = >= 50% of the disc: sunrise/sunset events are the Sun-centre crossings.
 - Earth "visible" (UI default for DTE): Earth's CENTRE above the terrain (clearance > 0).
   Also reported: any limb (clearance > -r) and full disc (clearance > r), because published
   studies use different definitions.
@@ -48,13 +49,17 @@ def pct(mask: np.ndarray) -> float:
     return float(100.0 * np.mean(mask))
 
 
-def window_stats(sun_frac: np.ndarray, earth_clear: np.ndarray, earth_r: np.ndarray, step_s: float,
-                 link_any: np.ndarray | None = None) -> dict:
-    sunlit = sun_frac > 0
+def window_stats(sun_clear: np.ndarray, sun_r: np.ndarray, earth_clear: np.ndarray, earth_r: np.ndarray,
+                 step_s: float, link_any: np.ndarray | None = None) -> dict:
+    """Percentages of time. Defaults: Sun >= 50% of disc; Earth centre above the terrain."""
+    sunlit = sun_clear > 0  # default: >= 50% of the solar disc
     earth_c = earth_clear > 0
     out = {
         "sunlit_pct": pct(sunlit),
-        "sun_mean_visible_pct": float(100.0 * np.mean(sun_frac)),
+        "sunlit_any_part_pct": pct(sun_clear > -sun_r),
+        "sunlit_half_disc_pct": pct(sunlit),
+        "sunlit_full_disc_pct": pct(sun_clear > sun_r),
+        "sun_mean_visible_pct": float(100.0 * np.mean(disc_visible_fraction(sun_clear, sun_r))),
         "earth_visible_pct": pct(earth_c),
         "earth_visible_any_limb_pct": pct(earth_clear > -earth_r),
         "earth_visible_full_disc_pct": pct(earth_clear > earth_r),
