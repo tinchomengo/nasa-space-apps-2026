@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { loadSite, loadSites, type SiteData, type SitesIndex } from './lib/data'
+import { loadSite, loadSites, loadStations, type SiteData, type SitesIndex, type StationsData } from './lib/data'
 import { DAY, fromInputUTC, toInputUTC, utcLabel } from './lib/format'
 import { spanOf } from './lib/sky'
 import { CountdownCard } from './components/CountdownCard'
@@ -56,9 +56,11 @@ export default function App() {
   const [playing, setPlaying] = useState(false)
   const [speed, setSpeed] = useState(1)
   const [data, setData] = useState<Record<string, SiteData>>({})
+  const [stations, setStations] = useState<StationsData | null>(null)
 
   useEffect(() => {
     loadSites().then(setIndex).catch((e) => setError(String(e)))
+    loadStations().then(setStations).catch((e) => setError(String(e)))
   }, [])
 
   useEffect(() => {
@@ -187,7 +189,7 @@ export default function App() {
 
       <section className="cards" aria-live="polite">
         {sites.map((s) => (
-          <CountdownCard key={s.meta.id} site={s} t={tSec} />
+          <CountdownCard key={s.meta.id} site={s} t={tSec} stations={stations} />
         ))}
         {sites.length === 0 && !error && <p className="muted">Loading…</p>}
       </section>

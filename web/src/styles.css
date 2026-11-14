@@ -209,6 +209,40 @@ button:disabled {
   font-size: 0.95rem;
 }
 
+/* link badge (S1) */
+.link {
+  margin-top: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--panel-2);
+  border: 1px solid #333a4a;
+  font-size: 0.88rem;
+}
+.link-ok {
+  border-color: var(--good);
+}
+.link-no {
+  border-color: var(--crit);
+}
+.link-icon {
+  margin-right: 6px;
+}
+.stations {
+  list-style: none;
+  padding: 0;
+  margin: 6px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 0.8rem;
+}
+.st-on {
+  color: var(--good);
+}
+.st-off {
+  color: var(--muted);
+}
+
 /* charts */
 .canvas-wrap {
   position: relative;

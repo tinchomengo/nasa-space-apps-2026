@@ -1,4 +1,5 @@
-import type { SiteData } from '../lib/data'
+import type { SiteData, StationsData } from '../lib/data'
+import { LinkBadge } from './LinkBadge'
 import { bodyState, skyAt, type Body } from '../lib/sky'
 import { fmtDeg, hms, human } from '../lib/format'
 
@@ -61,7 +62,7 @@ function Row({ site, body, t }: { site: SiteData; body: Body; t: number }) {
   )
 }
 
-export function CountdownCard({ site, t }: { site: SiteData; t: number }) {
+export function CountdownCard({ site, t, stations }: { site: SiteData; t: number; stations: StationsData | null }) {
   const sky = skyAt(site, t)
   return (
     <article className="card" aria-label={`${site.meta.name} countdowns`}>
@@ -76,6 +77,7 @@ export function CountdownCard({ site, t }: { site: SiteData; t: number }) {
       </header>
       <Row site={site} body="sun" t={t} />
       <Row site={site} body="earth" t={t} />
+      {stations && <LinkBadge site={site} stations={stations} t={t} />}
       {sky ? (
         <dl className="now-grid">
           <div>
