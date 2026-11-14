@@ -13,6 +13,7 @@ export interface Neighbourhood {
   heightM: number[]
   relief: { stepM: number; n: number; heightM: number[] }
   masks: Int16Array // n*n × 360
+  stats?: { sun: number[]; earth: number[]; both: number[] } // full-span %, same math as the browser
 }
 
 const cache = new Map<string, Promise<Neighbourhood>>()
@@ -36,6 +37,7 @@ export function loadNeighbourhood(siteId: string, base = import.meta.env.BASE_UR
       heightM: m.height_m,
       relief: { stepM: m.relief.step_m, n: m.relief.n, heightM: m.relief.height_m },
       masks: new Int16Array(buf),
+      stats: m.stats ? { sun: m.stats.sun, earth: m.stats.earth, both: m.stats.both } : undefined,
     }))
     p.catch(() => cache.delete(siteId))
     cache.set(siteId, p)

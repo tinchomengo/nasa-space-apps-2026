@@ -65,9 +65,11 @@ function Row({ site, body, t }: { site: SiteData; body: Body; t: number }) {
 export function CountdownCard({ site, t, stations }: { site: SiteData; t: number; stations: StationsData | null }) {
   const sky = skyAt(site, t)
   return (
-    <article className="card" aria-label={`${site.meta.name} countdowns`}>
+    <article className={site.meta.id.startsWith('pt:') ? 'card card-custom' : 'card'} aria-label={`${site.meta.name} countdowns`}>
       <header className="card-head">
-        <h3>{site.meta.name}</h3>
+        <h3>
+          {site.meta.id.startsWith('pt:') && <span className="pin-badge">📍 Your point</span>} {site.meta.name}
+        </h3>
         <div className="card-meta">
           {site.meta.lat.toFixed(4)}°, {site.meta.lon.toFixed(4)}° ·{' '}
           <span className={`badge src-${site.meta.horizon_source}`} title="Terrain data used for the horizon">

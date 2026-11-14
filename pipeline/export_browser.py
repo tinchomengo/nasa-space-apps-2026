@@ -111,16 +111,53 @@ def export_neighbourhood(site) -> None:
     print(f"nb_{site.id}: {n}x{n} masks in {secs:.0f}s, {masks.nbytes / 1e3:.0f} kB")
 
 
+def grid_stats(site_id: str) -> None:
+    """Full-span stats for every neighbourhood grid point, with EXACTLY the browser's math
+    (float32 Moon-centre vectors, hourly, 1° masks, linear mask interpolation), so a heatmap cell
+    equals what the browser computes when that point is clicked. Writes them into nb_<site>.json."""
+    meta_v = json.loads((config.WEB_DATA / "ephem_vectors.json").read_text())
+    V = np.frombuffer((config.WEB_DATA / "ephem_vectors.bin").read_bytes(), dtype="<f4").reshape(-1, 6).astype(np.float64)
+    p = config.WEB_DATA / f"nb_{site_id}.json"
+    nb = json.loads(p.read_text())
+    masks = np.frombuffer((config.WEB_DATA / f"nb_{site_id}.bin").read_bytes(), dtype="<i2").reshape(-1, nb["n_az"]) / 100.0
+    R = meta_v["moon_radius_km"]
+    out = {"sun": [], "earth": [], "both": []}
+    for k in range(nb["n"] * nb["n"]):
+        e, n, u = ephem.enu_basis(nb["lat"][k], nb["lon"][k])
+        r = R + (nb["height_m"][k] + meta_v["observer_height_m"]) / 1000.0
+        clear = {}
+        for body, sl in (("sun", slice(0, 3)), ("earth", slice(3, 6))):
+            topo = V[:, sl] - r * u
+            az = np.degrees(np.arctan2(topo @ e, topo @ n)) % 360.0
+            el = np.degrees(np.arcsin(np.clip((topo @ u) / np.linalg.norm(topo, axis=1), -1, 1)))
+            clear[body] = el - horizon.interp_mask(masks[k], az)
+        sun_up, earth_up = clear["sun"] > 0, clear["earth"] > 0
+        out["sun"].append(round(100 * float(sun_up.mean()), 2))
+        out["earth"].append(round(100 * float(earth_up.mean()), 2))
+        out["both"].append(round(100 * float((sun_up & earth_up).mean()), 2))
+    nb["stats"] = {**out, "definition": "full span, hourly; Sun >= 50% of disc, Earth centre above terrain"}
+    p.write_text(json.dumps(nb, separators=(",", ":")))
+    k0 = (nb["n"] * nb["n"] - 1) // 2
+    print(f"nb_{site_id} stats: sunlit {min(out['sun']):.1f}-{max(out['sun']):.1f}% (centre {out['sun'][k0]:.1f}), "
+          f"earth {min(out['earth']):.1f}-{max(out['earth']):.1f}% (centre {out['earth'][k0]:.1f})")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--skip-grids", action="store_true")
+    ap.add_argument("--stats-only", action="store_true", help="only (re)compute grid stats from existing nb files")
     args = ap.parse_args()
+    polar = [s for s in SITES if dem.horizon_source(s.lat, s.lon) != "smooth-sphere"]
+    if args.stats_only:
+        for s in polar:
+            grid_stats(s.id)
+        return
     export_vectors()
     export_fixture()
     if not args.skip_grids:
-        for s in SITES:
-            if dem.horizon_source(s.lat, s.lon) != "smooth-sphere":
-                export_neighbourhood(s)
+        for s in polar:
+            export_neighbourhood(s)
+            grid_stats(s.id)
 
 
 if __name__ == "__main__":

@@ -74,3 +74,21 @@ for (const id of ['connecting-ridge', 'shackleton-rim', 'peak-near-shackleton', 
   console.log(`${ok ? 'PASS' : 'FAIL'} grid-centre ${id.padEnd(20)} offset ${dPos.toFixed(2)} m | sunlit ${dSun >= 0 ? '+' : ''}${dSun.toFixed(2)} | earth ${dEarth >= 0 ? '+' : ''}${dEarth.toFixed(2)} pts (1° vs 0.5° mask)`)
 }
 if (nbFails) { console.error(`${nbFails} grid-centre failure(s)`); process.exit(1) }
+
+// Heatmap stats (pipeline, Python) must equal what the browser computes when the point is clicked.
+let hmFails = 0
+for (const id of ['connecting-ridge', 'malapert', 'nobile-rim-1']) {
+  const m = JSON.parse(readFileSync(`${root}public/data/nb_${id}.json`, 'utf8'))
+  const b = readFileSync(`${root}public/data/nb_${id}.bin`)
+  const masks = new Int16Array(b.buffer, b.byteOffset, b.byteLength / 2)
+  let worstHm = 0
+  for (const k of [0, 37, 150, 220, 300, 440]) {
+    const horizon = Array.from({ length: 360 }, (_, a) => masks[k * 360 + a] / 100)
+    const c = computePoint({ id, name: id, lat: m.lat[k], lon: m.lon[k], siteHeightM: m.height_m[k], horizon, horizonSource: '5m+120m' }, vec)
+    worstHm = Math.max(worstHm, Math.abs(c.stats.sunlit_pct - m.stats.sun[k]), Math.abs(c.stats.earth_visible_pct - m.stats.earth[k]), Math.abs(c.stats.both_pct - m.stats.both[k]))
+  }
+  const ok = worstHm < 0.05
+  if (!ok) hmFails++
+  console.log(`${ok ? 'PASS' : 'FAIL'} heatmap ${id.padEnd(20)} max |Δ| vs browser click = ${worstHm.toFixed(3)} pts`)
+}
+if (hmFails) { console.error(`${hmFails} heatmap failure(s)`); process.exit(1) }

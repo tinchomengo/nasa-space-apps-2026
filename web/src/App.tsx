@@ -250,7 +250,7 @@ export default function App() {
         Malargüe in Argentina, pointing up at the Moon right now?
       </Explain>
 
-      <section className="cards">
+      <section className="cards" id="cards">
         {sites.map((s) => (
           <CountdownCard key={s.meta.id} site={s} t={tSec} stations={stations} />
         ))}
@@ -275,7 +275,12 @@ export default function App() {
         countdowns, timeline and statistics above are recomputed for it. The point appears as an extra column.
       </Explain>
       {primarySummary && primarySummary.horizon_source !== 'smooth-sphere' && (
-        <Explore site={primarySummary} selected={selectedK} onPick={(p) => setPt(`${p.site.id}:${p.k}`)} />
+        <Explore
+          site={primarySummary}
+          selected={selectedK}
+          onPick={(p) => setPt(`${p.site.id}:${p.k}`)}
+          onShowCards={() => document.getElementById('cards')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+        />
       )}
 
       {edu && <Faq />}

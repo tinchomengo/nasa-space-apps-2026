@@ -254,12 +254,73 @@ button:disabled {
   flex: 0 0 auto;
   width: 100%;
 }
-.explore-help {
-  flex: 1 1 240px;
-  font-size: 0.85rem;
+.explore-side {
+  flex: 1 1 260px;
+  font-size: 0.88rem;
 }
-.explore-help p {
+.explore-side p {
   margin: 0 0 8px;
+}
+.point-panel h4 {
+  margin: 0 0 4px;
+}
+table.metrics.compact th,
+table.metrics.compact td {
+  padding: 4px 8px;
+}
+.delta-up {
+  color: var(--good);
+}
+.delta-down {
+  color: var(--crit);
+}
+.seg {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.seg-btn.on {
+  border-color: var(--text);
+  background: #2a3142;
+}
+.ramp-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  margin-left: 8px;
+}
+.ramp-legend i {
+  display: inline-block;
+  width: 120px;
+  height: 10px;
+  border-radius: 3px;
+}
+.card-custom {
+  outline: 2px solid var(--text);
+  animation: flash 1.2s ease-out 1;
+}
+@keyframes flash {
+  from {
+    outline-color: var(--warn);
+  }
+  to {
+    outline-color: var(--text);
+  }
+}
+.pin-badge {
+  font-size: 0.75rem;
+  border: 1px solid var(--text);
+  border-radius: 999px;
+  padding: 1px 6px;
+  vertical-align: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .card-custom {
+    animation: none;
+  }
 }
 
 /* charts */
