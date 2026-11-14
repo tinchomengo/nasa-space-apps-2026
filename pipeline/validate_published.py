@@ -256,14 +256,15 @@ def to_markdown(res: dict) -> str:
           "Every row is evaluated at the **exact coordinates given in the paper**, not at our display sites, "
           f"with a {res['observer_height_m']:.0f} m observer, {res['step_min']}-min sampling and the paper's period where it is stated. "
           "Differences are expected; we **did not tune** anything to match. Δ = ours − published, in percentage points.", "",
-          f"**Summary.** Replicating NASA PGDA 69 on the same 120 m DEM ({res['summary']['n_points']} points): "
+          f"**Summary.** Against NASA PGDA 69 at the same points, ours differs by a median of "
+          f"{res['summary']['ours_vs_pgda_at_published_points_median_abs']:.1f} pts ({res['summary']['n_published_any_part']} any-part rows). "
+          f"Replicating PGDA 69 on the same 120 m DEM ({res['summary']['n_points']} points): "
           f"median |Δ| Sun {res['summary']['replication_sun_median_abs']:.1f} pts (max {res['summary']['replication_sun_max_abs']:.1f}), "
           f"Earth {res['summary']['replication_earth_median_abs']:.1f} pts (max {res['summary']['replication_earth_max_abs']:.1f}). "
-          f"At the published points, ours vs PGDA 69 at the same point: median |Δ| {res['summary']['ours_vs_pgda_at_published_points_median_abs']:.1f} pts "
-          f"({res['summary']['n_published_any_part']} any-part rows). The large deltas against Bryant 2009 and Bussey 2010 come from where their "
-          "coordinates land on LOLA terrain. Their DEMs (2006 GSSR radar, Kaguya) put the peaks a few hundred metres to a few km from LOLA's. "
-          f"Within 2 km of each published point, the best PGDA 69 pixel brings the gap to the published value down from a median of "
-          f"{res['summary']['published_vs_pgda_point_median_abs']:.1f} pts at the point to {res['summary']['published_vs_pgda_best2km_median_abs']:.1f} pts "
+          "Bryant 2009 and Bussey 2010 used older DEMs (2006 GSSR radar, Kaguya), whose coordinates are shifted by hundreds of "
+          "metres to a few km relative to LOLA. Their exact coordinates therefore land on different terrain, and visibility there changes a lot. "
+          f"The best PGDA 69 pixel within 2 km of each published point comes within a median of "
+          f"{res['summary']['published_vs_pgda_best2km_median_abs']:.1f} pts of the published value "
           f"(max {res['summary']['published_vs_pgda_best2km_max_abs']:.1f}).", ""]
     by_src: dict[str, list] = {}
     for r in res["rows"]:

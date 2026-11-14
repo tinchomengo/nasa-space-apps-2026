@@ -8,6 +8,10 @@ import { Timeline } from './components/Timeline'
 import { Metrics } from './components/Metrics'
 import { Explore } from './components/Explore'
 import { useCustomPoint } from './lib/useCustomPoint'
+import { Tabs } from './components/Tabs'
+import { ValidationTab } from './components/ValidationTab'
+import { MethodTab } from './components/MethodTab'
+import { AboutTab } from './components/AboutTab'
 
 const MAX_COMPARE = 3
 const SPEEDS = [
@@ -67,6 +71,7 @@ export default function App() {
   const [latIn, setLatIn] = useState('')
   const [lonIn, setLonIn] = useState('')
   const custom = useCustomPoint(pt, index?.sites)
+  const [tab, setTab] = useState('validation')
 
   useEffect(() => {
     loadSites().then(setIndex).catch((e) => setError(String(e)))
@@ -244,6 +249,16 @@ export default function App() {
 
       {sites.length > 0 && <Timeline sites={sites} t={tSec} onPick={(v) => setBase(v - slip * DAY)} />}
       {sites.length > 0 && <Metrics sites={sites} t={tSec} />}
+
+      <Tabs
+        active={tab}
+        onChange={setTab}
+        tabs={[
+          { id: 'validation', label: 'Validation', render: () => <ValidationTab /> },
+          { id: 'method', label: 'Method', render: () => <MethodTab /> },
+          { id: 'about', label: 'About', render: () => <AboutTab /> },
+        ]}
+      />
 
       <footer className="footer">
         <p>
