@@ -27,6 +27,11 @@ FILES=(
   "dem/near $PGDA78/Site11/Site11_final_adj_5mpp_surf.tif 40980806"
   "dem/near $PGDA78/Site20v2/Site20v2_final_adj_5mpp_surf.tif 108192905"
   "dem/near $PGDA78/Site23/Site23_final_adj_5mpp_surf.tif 70586804"
+  # ROI shapefiles (avg illumination > 70% regions); only published for these four sites
+  "dem/roi_raw $PGDA78/Site01/Site01_ROIs.tgz 2934"
+  "dem/roi_raw $PGDA78/Site04/Site04_ROIs.tgz 1712"
+  "dem/roi_raw $PGDA78/Site07/Site07_ROIs.tgz 1312"
+  "dem/roi_raw $PGDA78/Site11/Site11_ROIs.tgz 1719"
 )
 
 size_of() { stat -f%z "$1" 2>/dev/null || stat -c%s "$1" 2>/dev/null || echo 0; }

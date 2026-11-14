@@ -3,8 +3,9 @@
   --panel: #151922;
   --text: #e8ecf3;
   --muted: #9aa3b2;
-  --sun: #f5b324;
-  --earth: #4a9eff;
+  /* Sun/Earth validated on --bg: in-band lightness, CVD ΔE ≥ 26, contrast ≥ 3:1 */
+  --sun: #bf830b;
+  --earth: #3a7bd5;
   --both: #3ccf91;
   --neither: #3a3f4a;
   color-scheme: dark;
