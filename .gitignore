@@ -1,5 +1,6 @@
-# Raw downloads (DEMs, kernels, Horizons cache) — never commit
-data/
+# Raw downloads (DEMs, kernels, Horizons cache) — never commit.
+# Anchored: web/public/data/ (generated JSON) IS committed.
+/data/
 *.tif
 *.IMG
 *.bsp
