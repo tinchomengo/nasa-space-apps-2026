@@ -2,7 +2,7 @@
 // pipeline/export_southpole.py: Lambert + cast shadows + penumbra, curvature included).
 // Scene units: km. x = u (toward the Sun's horizontal direction), y = up, z = -v (right-handed).
 //
-// URL: ?labels=1|0 &mode=preview|render|still &t=<s, still> &shot=<name> &dur=12 &fps=30 &exag=1.3
+// URL: ?labels=1|0 &mode=preview|render|still &t=<s, still, clip time> &shot=<name> &dur=12 &lead=6 &fps=30 &exag=1.3
 import * as THREE from 'three'
 import { makeCore, HEADER, STYLE } from './sp_core.js'
 
@@ -13,7 +13,10 @@ const MODE = Q.get('mode') || 'preview'
 document.body.classList.add(MODE)
 const LABELS = Q.get('labels') !== '0'
 const SHOT = Q.get('shot') || (LABELS ? 'southpole_labels' : 'southpole_clean')
-const DUR = num('dur', 12), FPS = num('fps', 30), EXAG = num('exag', 1.3)
+// DUR: the original 12 s flyover; LEAD: seconds of the same flight before it (camera extrapolated back
+// along its starting direction and speed), so the clip is LEAD + DUR long and its last DUR s are unchanged.
+const DUR = num('dur', 12), LEAD = num('lead', 6), FPS = num('fps', 30), EXAG = num('exag', 1.3)
+const TOTAL = DUR + LEAD
 
 const meta = await (await fetch('data/sp_meta.json')).json()
 const hbuf = new Uint16Array(await (await fetch('data/sp_height.bin')).arrayBuffer())
@@ -33,36 +36,49 @@ const scene = new THREE.Scene()
 scene.background = new THREE.Color(0x000000)
 const camera = new THREE.PerspectiveCamera(42, W / H, 0.1, 5000)
 
-// terrain mesh
-{
-  const pos = new Float32Array(N * N * 3), uv = new Float32Array(N * N * 2)
-  for (let i = 0; i < N; i++) {
-    const v = ((i + 0.5) / N) * 2 * HALF - HALF
-    for (let j = 0; j < N; j++) {
-      const u = ((j + 0.5) / N) * 2 * HALF - HALF
-      const h = meta.height_lo_m + (hbuf[i * N + j] / 65535) * (meta.height_hi_m - meta.height_lo_m)
-      const k = i * N + j
-      pos[k * 3] = u; pos[k * 3 + 1] = heightAt(h, u, v); pos[k * 3 + 2] = -v
-      uv[k * 2] = (u + HALF) / (2 * HALF); uv[k * 2 + 1] = (v + HALF) / (2 * HALF)
+// terrain meshes: detailed ±HALF box + coarser outer ring (hole where the detailed box is).
+// Heights: uint16, 0 = no DEM data (triangle skipped), 1..65535 = lo..hi.
+function terrainMesh(buf, n, half, lo, hi, texUrl, { hole = 0, yOff = 0 } = {}) {
+  const pos = new Float32Array(n * n * 3), uv = new Float32Array(n * n * 2)
+  for (let i = 0; i < n; i++) {
+    const v = ((i + 0.5) / n) * 2 * half - half
+    for (let j = 0; j < n; j++) {
+      const u = ((j + 0.5) / n) * 2 * half - half
+      const q = buf[i * n + j], h = lo + ((Math.max(q, 1) - 1) / 65534) * (hi - lo)
+      const k = i * n + j
+      pos[k * 3] = u; pos[k * 3 + 1] = heightAt(h, u, v) + yOff; pos[k * 3 + 2] = -v
+      uv[k * 2] = (u + half) / (2 * half); uv[k * 2 + 1] = (v + half) / (2 * half)
     }
   }
-  const idx = new Uint32Array((N - 1) * (N - 1) * 6)
-  let p = 0
-  for (let i = 0; i < N - 1; i++) for (let j = 0; j < N - 1; j++) {
-    const a = i * N + j, b = a + 1, c = a + N, d = c + 1
-    idx.set([a, c, b, b, c, d], p); p += 6
+  const idx = []
+  for (let i = 0; i < n - 1; i++) for (let j = 0; j < n - 1; j++) {
+    const a = i * n + j, b = a + 1, c = a + n, d = c + 1
+    if (!buf[a] || !buf[b] || !buf[c] || !buf[d]) continue
+    if (hole) {
+      const u0 = pos[a * 3], u1 = pos[d * 3], v0 = -pos[a * 3 + 2], v1 = -pos[d * 3 + 2]
+      if (Math.max(Math.abs(u0), Math.abs(u1)) < hole && Math.max(Math.abs(v0), Math.abs(v1)) < hole) continue
+    }
+    idx.push(a, c, b, b, c, d)
   }
   const g = new THREE.BufferGeometry()
   g.setAttribute('position', new THREE.BufferAttribute(pos, 3))
   g.setAttribute('uv', new THREE.BufferAttribute(uv, 2))
-  g.setIndex(new THREE.BufferAttribute(idx, 1))
-  const tex = new THREE.TextureLoader().load('data/sp_shade.jpg')
-  tex.flipY = false // image row 0 = v = -HALF = uv.y 0
+  g.setIndex(new THREE.BufferAttribute(new Uint32Array(idx), 1))
+  const tex = new THREE.TextureLoader().load(texUrl)
+  tex.flipY = false // image row 0 = v = -half = uv.y 0
   tex.colorSpace = THREE.SRGBColorSpace
   tex.anisotropy = renderer.capabilities.getMaxAnisotropy()
   tex.generateMipmaps = true
   tex.minFilter = THREE.LinearMipmapLinearFilter
-  scene.add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide })))
+  return new THREE.Mesh(g, new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide }))
+}
+scene.add(terrainMesh(hbuf, N, HALF, meta.height_lo_m, meta.height_hi_m, 'data/sp_shade.jpg'))
+{
+  const o = meta.outer
+  const obuf = new Uint16Array(await (await fetch('data/sp_outer_height.bin')).arrayBuffer())
+  const cell = (2 * o.half_km) / o.n_mesh
+  // overlap the detailed box by ~2 outer cells, slightly lower so the detailed surface wins there
+  scene.add(terrainMesh(obuf, o.n_mesh, o.half_km, o.height_lo_m, o.height_hi_m, 'data/sp_outer_shade.jpg', { hole: HALF - 2 * cell, yOff: -0.06 }))
 }
 
 // stars (deterministic, faint)
@@ -125,7 +141,8 @@ function drawLabels(t) {
 }
 
 // ---------------- frame ----------------
-function renderAt(t) {
+function renderAt(clipT) {
+  const t = clipT - LEAD // flyover time: negative during the lead-in
   core.pose(camera, t, DUR)
   renderer.render(scene, camera)
   ctx.drawImage(glCanvas, 0, 0)
@@ -148,7 +165,7 @@ async function post(i) {
 }
 
 if (MODE === 'render') {
-  const n = Math.round(DUR * FPS)
+  const n = Math.round(TOTAL * FPS)
   for (let i = 0; i < n; i++) { renderAt(i / FPS); await post(i); status.textContent = `render ${SHOT}: ${i + 1}/${n}` }
   await fetch(`/done?shot=${SHOT}&n=${n}&fps=${FPS}`, { method: 'POST' })
   status.textContent = `render ${SHOT}: done`
@@ -159,12 +176,12 @@ if (MODE === 'render') {
 } else {
   let t = 0, playing = true, last = performance.now()
   addEventListener('keydown', (e) => { if (e.code === 'Space') { playing = !playing; e.preventDefault() } })
-  scrub.addEventListener('input', () => { t = (scrub.value / 1000) * DUR; playing = false })
+  scrub.addEventListener('input', () => { t = (scrub.value / 1000) * TOTAL; playing = false })
   const loop = (now) => {
-    if (playing) { t += (now - last) / 1000; if (t > DUR) t = 0 }
+    if (playing) { t += (now - last) / 1000; if (t > TOTAL) t = 0 }
     last = now
     renderAt(t)
-    scrub.value = String(Math.round((t / DUR) * 1000))
+    scrub.value = String(Math.round((t / TOTAL) * 1000))
     status.textContent = `S3 · ${t.toFixed(2)} s · Sun ${meta.sun_el_at_pole_deg}° above the pole (${meta.epoch_utc}) · relief ×${EXAG}`
     requestAnimationFrame(loop)
   }

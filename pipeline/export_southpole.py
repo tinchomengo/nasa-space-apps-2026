@@ -13,7 +13,8 @@ Lighting, at the real Sun direction for --epoch (DE421 + MOON_ME_DE421):
   - cast shadows: a point is shadowed at Sun elevation e if any point toward the Sun rises above the ray.
     With +u toward the Sun, that is a reverse running maximum of (z - u·tan e) along each row (exact, O(N²));
   - penumbra: 7 elevations across the Sun's 0.53° disc, weighted by the disc's chord lengths.
-Writes video/public/data/sp_shade.jpg (grayscale), sp_height.bin (uint16) and sp_meta.json (labels, Sun).
+Writes video/public/data/sp_shade.jpg + sp_height.bin (±200 km, detailed), sp_outer_shade.jpg + sp_outer_height.bin
+(±450 km, coarser ring so the flyover never runs off the terrain) and sp_meta.json (labels, Sun).
 """
 from __future__ import annotations
 
@@ -33,6 +34,9 @@ R = config.MOON_RADIUS_M
 HALF_KM = 200.0
 N_SHADE = 4096
 N_MESH = 1024
+HALF_OUT_KM = 450.0  # outer ring (coarser) so the flyover never runs off the terrain
+N_OUT_SHADE = 3072
+N_OUT_MESH = 768
 SUN_R_DEG = 0.267
 
 # Map labels. Crater labels at IAU crater centres; site labels at the app's curated coordinates.
@@ -56,6 +60,63 @@ def sun_at(epoch: datetime):
     return el, lon
 
 
+def bake(far, uhat, vhat, sun_el, half_km, n_shade, n_mesh, prefix):
+    """Shade texture + mesh heights for a square of ±half_km on the Sun-aligned grid.
+
+    Mesh heights are uint16 with 0 reserved for "no DEM data" (outside LDEM_75S_120M), 1..65535 = lo..hi.
+    """
+    def grid(n):
+        c = (np.arange(n) + 0.5) / n * 2 * half_km * 1000 - half_km * 1000
+        U, V = np.meshgrid(c, c)  # rows: v, cols: u (toward the Sun)
+        X = U * uhat[0] + V * vhat[0]
+        Y = U * uhat[1] + V * vhat[1]
+        return c, U, V, X, Y
+
+    c, U, V, X, Y = grid(n_shade)
+    h = far.sample(X.ravel(), Y.ravel()).reshape(U.shape)
+    nodata = np.isnan(h)
+    z = np.where(nodata, -1e9, h - (U ** 2 + V ** 2) / (2 * R))  # no data: never an occluder
+    zf = np.where(nodata, np.nanmean(h) - (U ** 2 + V ** 2) / (2 * R), z)  # for gradients only
+    step = c[1] - c[0]
+
+    dzdv, dzdu = np.gradient(zf, step)
+    n = np.stack([-dzdu, -dzdv, np.ones_like(zf)])
+    n /= np.linalg.norm(n, axis=0)
+    e0 = np.radians(sun_el)
+    cos_i = np.clip(n[0] * np.cos(e0) + n[2] * np.sin(e0), 0, None)
+
+    ks = np.linspace(-1, 1, 7)
+    w = np.sqrt(np.clip(1 - ks ** 2, 0, None)) + 0.05
+    w /= w.sum()
+    lit = np.zeros_like(zf)
+    for k, wk in zip(ks, w):
+        e = np.radians(sun_el + k * SUN_R_DEG)
+        key = z - U * np.tan(e)
+        rev = np.maximum.accumulate(key[:, ::-1], axis=1)[:, ::-1]
+        ahead = np.concatenate([rev[:, 1:], np.full((key.shape[0], 1), -np.inf)], axis=1)
+        lit += wk * (ahead <= key)
+    b = lit * cos_i
+
+    rng = np.random.default_rng(7)
+    grain = rng.normal(0, 1, zf.shape).astype(np.float32)
+    grain = (grain + np.roll(grain, 1, 0) + np.roll(grain, 1, 1) + np.roll(grain, (1, 1), (0, 1))) / 4
+    v = 1 - np.exp(-7.0 * b)
+    v = v * (1 + 0.07 * grain) + 0.012
+    img = (np.clip(v, 0, 1) ** (1 / 1.15) * 255).astype(np.uint8)
+    img[nodata] = 0
+    OUT.mkdir(parents=True, exist_ok=True)
+    Image.fromarray(img, "L").save(OUT / f"{prefix}_shade.jpg", quality=88)
+
+    cm, Um, Vm, Xm, Ym = grid(n_mesh)
+    hm = far.sample(Xm.ravel(), Ym.ravel()).reshape(Um.shape)
+    lo, hi = float(np.nanmin(hm)), float(np.nanmax(hm))
+    q = np.where(np.isnan(hm), 0, 1 + np.round((np.nan_to_num(hm, nan=lo) - lo) / (hi - lo) * 65534)).astype("<u2")
+    (OUT / f"{prefix}_height.bin").write_bytes(q.tobytes())
+    print(f"{prefix}: ±{half_km:g} km, shade {n_shade}² ({2 * half_km * 1000 / n_shade:.0f} m), "
+          f"mesh {n_mesh}², no-data {100 * nodata.mean():.1f}%")
+    return {"lit": lit, "lo": lo, "hi": hi}
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--epoch", default="2027-02-21T12:00", help="UTC; default: Sun ~1.3° above the pole")
@@ -70,57 +131,9 @@ def main() -> None:
     uhat = np.array([px[0], py[0]]) / np.hypot(px[0], py[0])
     vhat = np.array([-uhat[1], uhat[0]])
 
-    def grid(n):
-        c = (np.arange(n) + 0.5) / n * 2 * HALF_KM * 1000 - HALF_KM * 1000
-        U, V = np.meshgrid(c, c)  # rows: v, cols: u (toward the Sun)
-        X = U * uhat[0] + V * vhat[0]
-        Y = U * uhat[1] + V * vhat[1]
-        return c, U, V, X, Y
-
-    c, U, V, X, Y = grid(N_SHADE)
-    h = far.sample(X.ravel(), Y.ravel()).reshape(U.shape)
-    if np.isnan(h).any():
-        h = np.where(np.isnan(h), np.nanmean(h), h)
-    z = h - (U ** 2 + V ** 2) / (2 * R)
-    step = c[1] - c[0]
-
-    # Lambert term with the curved surface (u toward the Sun)
-    dzdv, dzdu = np.gradient(z, step)
-    n = np.stack([-dzdu, -dzdv, np.ones_like(z)])
-    n /= np.linalg.norm(n, axis=0)
-    e0 = np.radians(sun_el)
-    cos_i = np.clip(n[0] * np.cos(e0) + n[2] * np.sin(e0), 0, None)
-
-    # Cast shadows with penumbra
-    ks = np.linspace(-1, 1, 7)
-    w = np.sqrt(np.clip(1 - ks ** 2, 0, None)) + 0.05
-    w /= w.sum()
-    lit = np.zeros_like(z)
-    for k, wk in zip(ks, w):
-        e = np.radians(sun_el + k * SUN_R_DEG)
-        key = z - U * np.tan(e)
-        rev = np.maximum.accumulate(key[:, ::-1], axis=1)[:, ::-1]
-        ahead = np.concatenate([rev[:, 1:], np.full((key.shape[0], 1), -np.inf)], axis=1)
-        lit += wk * (ahead <= key)
-    b = lit * cos_i
-
-    # Tone map (grazing light: most flats are dim; Sun-facing slopes bright) + fine regolith grain
-    rng = np.random.default_rng(7)
-    grain = rng.normal(0, 1, z.shape).astype(np.float32)
-    grain = (grain + np.roll(grain, 1, 0) + np.roll(grain, 1, 1) + np.roll(grain, (1, 1), (0, 1))) / 4
-    v = 1 - np.exp(-7.0 * b)
-    v = v * (1 + 0.07 * grain) + 0.012
-    img = (np.clip(v, 0, 1) ** (1 / 1.15) * 255).astype(np.uint8)
-    OUT.mkdir(parents=True, exist_ok=True)
-    Image.fromarray(img, "L").save(OUT / "sp_shade.jpg", quality=88)
-
-    # Mesh heights (same grid, coarser), uint16 with scale/offset
-    cm, Um, Vm, Xm, Ym = grid(N_MESH)
-    hm = far.sample(Xm.ravel(), Ym.ravel()).reshape(Um.shape)
-    hm = np.where(np.isnan(hm), np.nanmean(hm), hm)
-    lo, hi = float(hm.min()), float(hm.max())
-    q = np.round((hm - lo) / (hi - lo) * 65535).astype("<u2")
-    (OUT / "sp_height.bin").write_bytes(q.tobytes())
+    inner = bake(far, uhat, vhat, sun_el, HALF_KM, N_SHADE, N_MESH, "sp")
+    outer = bake(far, uhat, vhat, sun_el, HALF_OUT_KM, N_OUT_SHADE, N_OUT_MESH, "sp_outer")
+    lit, lo, hi = inner["lit"], inner["lo"], inner["hi"]
 
     # Labels in (u, v) km + height
     labels = []
@@ -137,7 +150,9 @@ def main() -> None:
     meta = {
         "epoch_utc": epoch.strftime("%Y-%m-%dT%H:%MZ"), "sun_el_at_pole_deg": round(float(sun_el), 3),
         "sun_lon_deg": round(float(sun_lon), 2), "half_km": HALF_KM, "n_shade": N_SHADE, "n_mesh": N_MESH,
-        "height_lo_m": lo, "height_hi_m": hi, "moon_radius_m": R,
+        "height_lo_m": lo, "height_hi_m": hi, "moon_radius_m": R, "height_zero_is_nodata": True,
+        "outer": {"half_km": HALF_OUT_KM, "n_shade": N_OUT_SHADE, "n_mesh": N_OUT_MESH,
+                  "height_lo_m": outer["lo"], "height_hi_m": outer["hi"]},
         "frame": "u toward the Sun's horizontal direction, v = u rotated +90° (PS plane of LDEM_75S_120M)",
         "labels": labels,
         "source": "NASA LRO LOLA LDEM_75S_120M_FLOAT; Sun from DE421 + MOON_ME_DE421",

@@ -8,6 +8,14 @@
  "height_lo_m": -5631.897696993113,
  "height_hi_m": 7018.0153843556955,
  "moon_radius_m": 1737400.0,
+ "height_zero_is_nodata": true,
+ "outer": {
+  "half_km": 450.0,
+  "n_shade": 3072,
+  "n_mesh": 768,
+  "height_lo_m": -7749.292398323534,
+  "height_hi_m": 6983.5031854889085
+ },
  "frame": "u toward the Sun's horizontal direction, v = u rotated +90\u00b0 (PS plane of LDEM_75S_120M)",
  "labels": [
   {

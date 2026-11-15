@@ -19,7 +19,7 @@ export function makeCore(THREE, meta, hbuf, { exag = 1.3, W = 1920, H = 1080, ke
   const N = meta.n_mesh, HALF = meta.half_km, R = meta.moon_radius_m
   const curv = (u, v) => ((u * u + v * v) * 1e6) / (2 * R) / 1000
   const heightAt = (h_m, u, v) => (h_m * exag) / 1000 - curv(u, v)
-  const hm = (i, j) => meta.height_lo_m + (hbuf[i * N + j] / 65535) * (meta.height_hi_m - meta.height_lo_m)
+  const hm = (i, j) => meta.height_lo_m + ((Math.max(hbuf[i * N + j], 1) - 1) / 65534) * (meta.height_hi_m - meta.height_lo_m) // 0 = no data
 
   /** Terrain surface y (km) at (u, v), bilinear on the mesh grid (cell centres). */
   function terrainY(u, v) {
@@ -41,10 +41,21 @@ export function makeCore(THREE, meta, hbuf, { exag = 1.3, W = 1920, H = 1080, ke
   const tgtCurve = new THREE.CatmullRomCurve3(K.tgt.map(toV), false, 'centripetal')
   const ease = (x) => (x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2) * 0.35 + x * 0.65
 
+  const at = (t, dur) => { const x = ease(Math.max(0, Math.min(1, t / dur))); return [camCurve.getPoint(x), tgtCurve.getPoint(x)] }
+  const lead = {} // t < 0: the same flight before the path starts, at its starting velocity (C1-continuous)
   function pose(camera, t, dur) {
-    const x = ease(Math.max(0, Math.min(1, t / dur)))
-    camera.position.copy(camCurve.getPoint(x))
-    camera.lookAt(tgtCurve.getPoint(x))
+    let p, q
+    if (t >= 0) [p, q] = at(t, dur)
+    else {
+      if (lead.dur !== dur) {
+        const [p0, q0] = at(0, dur), [p1, q1] = at(0.02, dur)
+        Object.assign(lead, { dur, p0, q0, vp: p1.clone().sub(p0).divideScalar(0.02), vq: q1.clone().sub(q0).divideScalar(0.02) })
+      }
+      p = lead.p0.clone().addScaledVector(lead.vp, t)
+      q = lead.q0.clone().addScaledVector(lead.vq, t)
+    }
+    camera.position.copy(p)
+    camera.lookAt(q)
     camera.updateMatrixWorld()
   }
 

@@ -176,9 +176,10 @@ No NASA logos.
   - Then ffmpeg encodes 1080p30 CRF 16. No Playwright.
 
 ### S3 — South-pole flyover · Claude (rendered)
-- **Terrain:** NASA LOLA `LDEM_75S_120M`, ±200 km around the pole, relief ×1.3.
+- **Terrain:** NASA LOLA `LDEM_75S_120M`, detailed within ±200 km of the pole plus a coarser ring out to ±450 km (so the ground never runs out), relief ×1.3.
 - **Lighting, baked by `pipeline/export_southpole.py`:** the real Sun at 2027-10-07 12:00 UTC (1.42° above the pole), curvature, Lambert shading, cast shadows with penumbra.
-- **Camera:** 12 s flyover from the sunlit side, ending in a push toward Connecting Ridge.
+- **Camera:** 18 s: a 6 s lead-in of the same flight (extrapolated back at its starting velocity), then the original 12 s ending in a push toward Connecting Ridge.
+- **Label timing:** all label times are the original ones +6 s; Monte Mouton is fully visible 7.5–10.0 s.
 - **Labels** (HUD style, one at a time): Nobile, Mons Mouton (IM-2), Malapert, de Gerlache, Shackleton, Connecting Ridge. Header: "POLO SUR · LOLA".
 - **Outputs:** `video/out/southpole_labels.mp4`, `video/out/southpole_clean.mp4`.
 
