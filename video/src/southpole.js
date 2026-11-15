@@ -4,6 +4,7 @@
 //
 // URL: ?labels=1|0 &mode=preview|render|still &t=<s, still> &shot=<name> &dur=12 &fps=30 &exag=1.3
 import * as THREE from 'three'
+import { makeCore, HEADER, STYLE } from './sp_core.js'
 
 const W = 1920, H = 1080
 const Q = new URLSearchParams(location.search)
@@ -80,24 +81,12 @@ function rng(seed) { return () => { seed |= 0; seed = (seed + 0x6d2b79f5) | 0; l
   scene.add(new THREE.Points(g, new THREE.PointsMaterial({ size: 1.4, sizeAttenuation: false, vertexColors: true })))
 }
 
-// ---------------- camera path (u, v, alt km above datum) ----------------
-// Slow oblique pass in from the sunlit side, then a gentle push toward Connecting Ridge.
-const lab = Object.fromEntries(meta.labels.map((l) => [l.name, l]))
-const cr = lab['Connecting Ridge']
-const camKeys = [[150, 250, 46], [100, 175, 34], [55, 100, 24], [24, 42, 16], [9, 16, 11.5]]
-const tgtKeys = [[45, 95, 0], [20, 60, 0], [0, 15, 0], [-6, -6, 1.5], [cr.u_km, cr.v_km, cr.h_m / 1000]]
-const toV = ([u, v, a]) => new THREE.Vector3(u, a - ((u * u + v * v) * 1e6) / (2 * R) / 1000, -v)
-const camCurve = new THREE.CatmullRomCurve3(camKeys.map(toV), false, 'centripetal')
-const tgtCurve = new THREE.CatmullRomCurve3(tgtKeys.map(toV), false, 'centripetal')
-const ease = (x) => (x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2) * 0.35 + x * 0.65 // gentle in/out
+const core = makeCore(THREE, meta, hbuf, { exag: EXAG, W, H })
 
 // ---------------- HUD ----------------
 const out = document.getElementById('out')
 const ctx = out.getContext('2d')
 const MONO = '"SF Mono", Menlo, monospace'
-const LABEL_TIMES = { Nobile: 0.8, 'Mons Mouton (IM-2)': 1.8, Malapert: 3.0, 'de Gerlache': 5.2, Shackleton: 6.8, 'Connecting Ridge': 8.6 }
-const anchors = meta.labels.map((l) => ({ ...l, p: P(l.u_km, l.v_km, l.h_m) }))
-
 function text(str, x, y, { size = 22, color = '#e8ecf3', align = 'left', weight = 500, spacing = 0, alpha = 1 } = {}) {
   ctx.globalAlpha = alpha
   ctx.font = `${weight} ${size}px ${MONO}`
@@ -112,38 +101,32 @@ function text(str, x, y, { size = 22, color = '#e8ecf3', align = 'left', weight 
 }
 
 function drawLabels(t) {
-  text('POLO SUR · LOLA', 56, 70, { size: 18, color: '#c9cfda', spacing: 4, weight: 600 })
+  text(HEADER, 56, 70, { size: 18, color: '#c9cfda', spacing: 3, weight: 600 })
   ctx.fillStyle = '#c9cfda'; ctx.fillRect(56, 82, 46, 1.5)
-  for (const a of anchors) {
-    const t0 = LABEL_TIMES[a.name]
-    if (t0 === undefined || t < t0) continue
-    const alpha = Math.min(1, (t - t0) / 0.6)
-    const s = a.p.clone().project(camera)
-    if (s.z > 1 || Math.abs(s.x) > 1.05 || Math.abs(s.y) > 1.05) continue
-    const x = (s.x * 0.5 + 0.5) * W, y = (-s.y * 0.5 + 0.5) * H
-    const lead = 70 * Math.min(1, (t - t0) / 0.4)
-    const hl = a.name === 'Connecting Ridge'
-    const size = hl ? 24 : 21, label = a.name.toUpperCase()
-    ctx.font = `${hl ? 700 : 600} ${size}px ${MONO}`
-    const tw = ctx.measureText(label).width + label.length * 2
-    const left = x + 20 + tw > W - 48 // flip the label to the left of its leader near the right edge
-    const sx = left ? -1 : 1
+  const cam = camera.clone()
+  const items = core.anchors.map((a) => ({ a, alpha: core.alphaAt(a, cam, t, DUR) })).filter((o) => o.alpha > 0.01)
+  core.pose(camera, t, DUR) // restore the frame's pose after the visibility checks
+  for (const { a, alpha } of items) {
+    const d = a.def, side = a.side
+    const L = core.layout(a, camera, side)
+    const lead = STYLE.lead * Math.min(1, (t - d.t0) / 0.4)
+    const x = L.x, y = L.y, ty = y - lead + 2
     ctx.globalAlpha = alpha
     ctx.strokeStyle = 'rgba(232,236,243,0.9)'; ctx.lineWidth = 1.4
     ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 4
     ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.stroke()
-    ctx.beginPath(); ctx.moveTo(x, y - 5); ctx.lineTo(x, y - 5 - lead); ctx.lineTo(x + sx * 14, y - 5 - lead); ctx.stroke()
+    ctx.beginPath(); ctx.moveTo(x, y - 5); ctx.lineTo(x, y - 5 - lead); ctx.lineTo(x + side * 14, y - 5 - lead); ctx.stroke()
     ctx.shadowBlur = 0; ctx.shadowColor = 'transparent'
     ctx.globalAlpha = 1
-    text(label, x + sx * 20, y - lead + 2, { size, weight: hl ? 700 : 600, spacing: 2, color: hl ? '#f4c25a' : '#e8ecf3', alpha, align: left ? 'right' : 'left' })
+    const align = side > 0 ? 'left' : 'right', tx = x + side * STYLE.gap
+    text(d.title, tx, ty, { size: d.amber ? STYLE.titleHl : STYLE.title, weight: d.amber ? 700 : 600, spacing: 2, color: d.amber ? '#f4c25a' : '#e8ecf3', alpha, align })
+    if (d.sub) text(d.sub, tx, ty + 6 + STYLE.sub, { size: STYLE.sub, weight: 500, spacing: 1, color: '#aab2c0', alpha: alpha * 0.9, align })
   }
 }
 
 // ---------------- frame ----------------
 function renderAt(t) {
-  const x = ease(Math.max(0, Math.min(1, t / DUR)))
-  camera.position.copy(camCurve.getPoint(x))
-  camera.lookAt(tgtCurve.getPoint(x))
+  core.pose(camera, t, DUR)
   renderer.render(scene, camera)
   ctx.drawImage(glCanvas, 0, 0)
   const vg = ctx.createRadialGradient(W / 2, H / 2, H * 0.45, W / 2, H / 2, H * 1.0)
