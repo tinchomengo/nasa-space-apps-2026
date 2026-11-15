@@ -18,7 +18,7 @@ from urllib.parse import parse_qs, urlparse
 
 HERE = Path(__file__).resolve().parent
 DIST, FRAMES, OUT = HERE / "dist", HERE / "frames", HERE / "out"
-SHOT_RE = re.compile(r"^[a-z0-9-]{1,32}$")
+SHOT_RE = re.compile(r"^[a-z0-9_-]{1,40}$")
 
 
 class Handler(SimpleHTTPRequestHandler):

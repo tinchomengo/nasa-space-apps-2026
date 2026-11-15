@@ -175,6 +175,13 @@ No NASA logos.
   - `video/frame_server.py` (Python standard library, 127.0.0.1 only) serves the built page and writes the POSTed PNG frames.
   - Then ffmpeg encodes 1080p30 CRF 16. No Playwright.
 
+### S3 — South-pole flyover · Claude (rendered)
+- **Terrain:** NASA LOLA `LDEM_75S_120M`, ±200 km around the pole, relief ×1.3.
+- **Lighting, baked by `pipeline/export_southpole.py`:** the real Sun at 2027-10-07 12:00 UTC (1.42° above the pole), curvature, Lambert shading, cast shadows with penumbra.
+- **Camera:** 12 s flyover from the sunlit side, ending in a push toward Connecting Ridge.
+- **Labels** (HUD style, one at a time): Nobile, Mons Mouton (IM-2), Malapert, de Gerlache, Shackleton, Connecting Ridge. Header: "POLO SUR · LOLA".
+- **Outputs:** `video/out/southpole_labels.mp4`, `video/out/southpole_clean.mp4`.
+
 ### AI clips — ElevenLabs video · Martín
 - **Clips:**
   - Earth → Moon (10 s).

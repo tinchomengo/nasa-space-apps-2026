@@ -1,0 +1,75 @@
+{
+ "epoch_utc": "2027-10-07T12:00Z",
+ "sun_el_at_pole_deg": 1.419,
+ "sun_lon_deg": 93.7,
+ "half_km": 200.0,
+ "n_shade": 4096,
+ "n_mesh": 1024,
+ "height_lo_m": -5631.897696993113,
+ "height_hi_m": 7018.0153843556955,
+ "moon_radius_m": 1737400.0,
+ "frame": "u toward the Sun's horizontal direction, v = u rotated +90\u00b0 (PS plane of LDEM_75S_120M)",
+ "labels": [
+  {
+   "name": "Shackleton",
+   "lat": -89.67,
+   "lon": 129.78,
+   "note": "crater, IAU centre",
+   "u_km": 8.087,
+   "v_km": -5.893,
+   "h_m": -2787.4,
+   "lit": 0.0
+  },
+  {
+   "name": "Connecting Ridge",
+   "lat": -89.4527,
+   "lon": -137.1487,
+   "note": "T-Minus site (PGDA 78 Site01 ROI)",
+   "u_km": -10.479,
+   "v_km": -12.87,
+   "h_m": 1953.9,
+   "lit": 1.0
+  },
+  {
+   "name": "de Gerlache",
+   "lat": -88.5,
+   "lon": -87.1,
+   "note": "crater, IAU centre",
+   "u_km": -45.483,
+   "v_km": -0.633,
+   "h_m": -1010.1,
+   "lit": 0.0
+  },
+  {
+   "name": "Malapert",
+   "lat": -85.9883,
+   "lon": 2.0625,
+   "note": "T-Minus site (massif summit)",
+   "u_km": -3.473,
+   "v_km": 121.648,
+   "h_m": 5172.2,
+   "lit": 1.0
+  },
+  {
+   "name": "Mons Mouton (IM-2)",
+   "lat": -84.7906,
+   "lon": 29.1957,
+   "note": "IM-2 landing site (published)",
+   "u_km": 68.048,
+   "v_km": 142.679,
+   "h_m": 5321.5,
+   "lit": 1.0
+  },
+  {
+   "name": "Nobile",
+   "lat": -85.2,
+   "lon": 53.5,
+   "note": "crater, IAU centre",
+   "u_km": 111.241,
+   "v_km": 93.999,
+   "h_m": 677.8,
+   "lit": 1.0
+  }
+ ],
+ "source": "NASA LRO LOLA LDEM_75S_120M_FLOAT; Sun from DE421 + MOON_ME_DE421"
+}
