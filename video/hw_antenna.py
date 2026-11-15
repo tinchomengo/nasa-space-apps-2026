@@ -95,7 +95,7 @@ def main() -> None:
     ap.add_argument("--park-below", type=float, default=10.0, help="mount degrees below the printed skyline while Earth is hidden")
     ap.add_argument("--stow", action="store_true", help="at Earthset send firmware STOW (points up) instead of parking low")
     ap.add_argument("--zero", action="store_true", help="disable, let you align the mount to the ring's centre mark, then ZERO_AZ")
-    ap.add_argument("--open", action="store_true", help="open the S1 live URL in the default browser")
+    ap.add_argument("--open", action="store_true", help="open the synced Spanish HUD (hud.html) in the default browser")
     ap.add_argument("--page", default="http://127.0.0.1:8765/", help="S1 page served by video/frame_server.py")
     a = ap.parse_args()
 
@@ -104,15 +104,17 @@ def main() -> None:
     start_ms = a.start if a.start else (time.time() + a.lead) * 1000
     kq = ";".join(f"{w:.3f}:{t:.0f}" for w, t in kn)
     url = f"{a.page}?shot=cycle&mode=live&start={start_ms:.0f}&knots={kq}"
+    hud = f"{a.page}hud.html?mode=live&start={start_ms:.0f}&knots={kq}"
     w = lambda t: interp(kn, t, inverse=True)
     print(f"Connecting Ridge · mean Earth az {tr.mean_az:.2f}° = mount az 0 (centre mark on the ring)")
     print(f"Earthset  {utc(tr.t_set)}  at +{w(tr.t_set):.1f} s")
     print(f"Earthrise {utc(tr.t_rise)}  at +{w(tr.t_rise):.1f} s")
     print(f"time-lapse ×{(kn[1][1] - kn[0][1]) / kn[1][0]:.0f} while tracking, ×{(kn[2][1] - kn[1][1]) / (kn[2][0] - kn[1][0]):.0f} "
           f"while hidden · duration {a.duration:.0f} s · starts in {(start_ms / 1000 - time.time()):.1f} s")
-    print(f"S1 live: {url}\n", flush=True)
+    print(f"HUD live (Act 4 laptop): {hud}")
+    print(f"S1 live (ridge render):  {url}\n", flush=True)
     if a.open:
-        webbrowser.open(url)
+        webbrowser.open(hud)
 
     link = DryLink() if a.dry_run else SerialLink(a.port or find_port())
     try:

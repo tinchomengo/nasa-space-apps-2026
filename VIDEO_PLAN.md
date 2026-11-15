@@ -175,6 +175,15 @@ No NASA logos.
   - `video/frame_server.py` (Python standard library, 127.0.0.1 only) serves the built page and writes the POSTed PNG frames.
   - Then ffmpeg encodes 1080p30 CRF 16. No Playwright.
 
+### HUD (ES) — replaces S1 in the edit · Claude (rendered)
+- Minimal Spanish HUD on pure black for Screen blending. Same type as the S3 labels.
+- Corner texts: "CRESTA DE CONEXIÓN · POLO SUR" top left; amber "TIEMPO ACELERADO" tag top right.
+- **Shots:**
+  - `video/out/hud_es_earthset.mp4` (6 s): LA TIERRA SE PONE EN, T-00:00:05 → 00:00:00, then a hard switch to SEÑAL PERDIDA (red, steady) at 4.5 s.
+  - `video/out/hud_es_earthrise.mp4` (6 s): LA TIERRA SALE EN, T-00:00:03 → 00:00:00, then ENLACE ✓ MALARGÜE (green) at 4.0 s.
+- **Live (Act 4 laptop):** `hw_antenna.py --open` opens `hud.html?mode=live…` with the same `start` and time map. SEÑAL PERDIDA appears on the same test the mount uses to park/stow (Earth clearance ≤ 0).
+- S1 (ridge render) is no longer used in the edit. Its renders stay in `video/out/` as backup.
+
 ### S3 — South-pole flyover · Claude (rendered)
 - **Terrain:** NASA LOLA `LDEM_75S_120M`, detailed within ±200 km of the pole plus a coarser ring out to ±450 km (so the ground never runs out), relief ×1.3.
 - **Lighting, baked by `pipeline/export_southpole.py`:** the real Sun at 2027-10-07 12:00 UTC (1.42° above the pole), curvature, Lambert shading, cast shadows with penumbra.
