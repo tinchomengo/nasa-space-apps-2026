@@ -196,16 +196,26 @@ No NASA logos.
 ### HW — Antenna prototype · SHOULD
 **`video/hw_antenna.py` (Claude; pyserial 3.5):**
 - Talks to the **unmodified iss-tracker Pico firmware** directly (no F´).
-- Reads `data/flight_csv/connecting-ridge.csv` and the same events as S1.
-- Compresses time so the sweep takes about 20 s.
-- Mapping: `az = clamp(3·(az − mean_az), ±85°)`, `el = clamp(45 + 6·el, 0, 90)`.
-- When clearance < 0: lower to the ring edge, then `STOW`. At Earthrise: `ENABLE` + `SET`.
-- Sends `SET` + `HEARTBEAT` at 10 Hz.
-- Flags:
-  - `--start <epoch_ms>` prints the matching S1 live URL.
-  - `--dry-run`.
+- Reads exactly the S1 data (`video/public/data/s1_mar2027.json`), through `video/hw_common.py`. The ring uses the same module.
+- **Time map** (24 s default, piecewise and shared with S1 live via `knots=` in the URL):
+  - 0–8 s: tracks Earth from 2 days before the Earthset (about 6 h/s); Earth sets at about 7.5 s.
+  - 8–16 s: fast-forwards the hidden 13 days.
+  - 16–24 s: Earthrise at about 16.5 s, then tracking resumes.
+- **Mapping:** `az = clamp(3·(az − mean_az), ±85°)`, `el = clamp(45 + 6·el, 0, 90)`. Mean az = 139.26°.
+- **While Earth is hidden:** parks 10° below the printed skyline (behind the paper). `--stow` sends the firmware `STOW` instead, which points straight up (az 0, el 90).
+- **Commands:** `SET` at 10 Hz, `HEARTBEAT 3`, `STOW` at the end or on Ctrl-C.
+- **Flags:**
+  - `--dry-run`
+  - `--zero`: set az zero by hand at the ring's centre mark.
+  - `--lead <s>`
+  - `--duration <s>`
+  - `--open`: opens the S1 live URL.
+  - `--start <epoch_ms>`
 
 **`video/horizon_ring.py` (Claude):** printable PDF of the skyline (A4 strips with alignment marks) using **the same mapping**. Ring radius and pivot height are parameters.
+- Defaults: radius 15 cm, pivot 8 cm → 3 A4 tiles, a 44.5 cm strip, skyline 16.4–20.5 cm above the desk.
+- Measure the real pivot height and re-run with `--pivot-cm` before printing.
+- The pointer arm must be shorter than the ring radius.
 
 **Firmware:** unchanged (`PING`, `ENABLE`, `DISABLE`, `ZERO_AZ`, `SET`, `STOW`, `HEARTBEAT`; `TLM` at 5 Hz). Power on in this order: USB → 12 V → 5 V.
 
