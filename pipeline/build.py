@@ -7,7 +7,7 @@ Outputs (contract with the web app; times are Unix seconds UTC):
 - stations.json   hourly Moon elevation per ground station + mask
 - site_<id>.json  { meta, horizon[720], hourly{...}, events[], stats{...} }
 With --flight-csv: data/flight_csv/<id>.csv (t_utc, earth_az, earth_el, earth_clearance) at
-10-min steps, plus the mean Earth azimuth, for the F´ HGA twin (kept outside flight/ for now).
+10-min steps, plus the mean Earth azimuth, for the antenna prototype (video/hw_antenna.py).
 """
 from __future__ import annotations
 

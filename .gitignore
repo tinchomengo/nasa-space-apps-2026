@@ -17,10 +17,10 @@ node_modules/
 web/dist/
 .vercel/
 
-# F´ build dirs
-flight/**/build-*/
-flight/**/build-artifacts/
-flight/**/build-fprime-automatic-*/
+# video renders (large, regenerable)
+video/dist/
+video/frames/
+video/out/
 
 # OS / editor
 .DS_Store
