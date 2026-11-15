@@ -6,7 +6,7 @@
 //
 // URL: ?shot=earthset|earthrise|alt-earthset|cycle &mode=preview|render|live
 //      &lapse=<sim s per video s> &pre=<video s before event> &dur=<video s> &fps=30
-//      live: &start=<epoch ms when sim starts> &t0=<sim start, unix s> &scale=<sim s per wall s>
+//      live: &start=<epoch ms when playback starts> &knots=w:t;w:t;... (video s : unix s, from hw_antenna.py)
 //      framing overrides: &caz= &cel= &fov=
 import * as THREE from 'three'
 
@@ -39,12 +39,24 @@ const T_SET = SHOT.type === 'earthrise' ? null : findEvent('earthset', M.chosen[
 const T_RISE = SHOT.type === 'earthrise' || SHOT.type === 'cycle' ? findEvent('earthrise', M.chosen.earthrise) : null
 const T_EVENT = SHOT.type === 'earthrise' ? T_RISE : T_SET
 
-// cycle: Earthset -> Earthrise (13 days) compressed into `dur` seconds, for the antenna sync shot
-const LAPSE = SHOT.type === 'cycle'
-  ? num('lapse', (T_RISE - T_SET + 2 * 4 * 3600) / num('dur', SHOT.dur))
-  : num('lapse', SHOT.lapse)
-const PRE = num('pre', SHOT.type === 'cycle' ? (4 * 3600) / LAPSE : SHOT.pre)
 const DUR = num('dur', SHOT.dur)
+// cycle: 2 d before Earthset -> 2 d after Earthrise in DUR s, piecewise (same as video/hw_common.py):
+// thirds for [set-2d, set+3h], [set+3h, rise-3h] (hidden, fast-forwarded), [rise-3h, rise+2d].
+// live/cycle URLs may pass knots=w:t;w:t;... (video seconds : unix seconds) from hw_antenna.py.
+const KNOTS = Q.has('knots')
+  ? Q.get('knots').split(';').map((p) => p.split(':').map(Number))
+  : SHOT.type === 'cycle'
+    ? [[0, T_SET - 2 * 86400], [DUR / 3, T_SET + 3 * 3600], [(2 * DUR) / 3, T_RISE - 3 * 3600], [DUR, T_RISE + 2 * 86400]]
+    : null
+const LAPSE = KNOTS ? (KNOTS[1][1] - KNOTS[0][1]) / (KNOTS[1][0] - KNOTS[0][0]) : num('lapse', SHOT.lapse)
+const PRE = num('pre', SHOT.pre)
+function pw(pts, x) {
+  if (x <= pts[0][0]) return pts[0][1]
+  for (let k = 1; k < pts.length; k++) if (x <= pts[k][0]) { const [x0, y0] = pts[k - 1], [x1, y1] = pts[k]; return y0 + ((y1 - y0) * (x - x0)) / (x1 - x0) }
+  return pts[pts.length - 1][1]
+}
+// video-second coordinate of a sim time (countdown digits = video seconds to the event)
+const vsec = (t) => (KNOTS ? pw(KNOTS.map(([a, b]) => [b, a]), t) : (t - T_EVENT) / LAPSE + PRE)
 
 function sample(t) {
   const x = Math.max(0, Math.min(M.n - 1.0001, (t - M.t0) / M.stepSec))
@@ -244,8 +256,8 @@ function drawHud(s, tSim, vt) {
   // centre-top: countdown (video seconds to the event) / state
   const target = SHOT.type === 'earthrise' ? T_RISE : (SHOT.type === 'cycle' && tSim > T_SET ? T_RISE : T_SET)
   const kind = target === T_RISE ? 'EARTHRISE' : 'EARTHSET'
-  const remainVideo = (target - tSim) / LAPSE
-  const sinceEvent = (tSim - target) / LAPSE
+  const remainVideo = vsec(target) - vsec(tSim)
+  const sinceEvent = -remainVideo
   if (remainVideo > 0) {
     text(kind, W / 2, 196, { size: 22, color: C.dim, align: 'center', spacing: 6 })
     const urgent = remainVideo <= 5
@@ -305,7 +317,7 @@ function glitch(strength, seed) {
 }
 
 // ---------------- frame ----------------
-function simTimeAt(vt) { return T_EVENT + (vt - PRE) * LAPSE }
+function simTimeAt(vt) { return KNOTS ? pw(KNOTS, vt) : T_EVENT + (vt - PRE) * LAPSE }
 
 function renderAt(tSim, vt) {
   const s = sample(tSim)
@@ -321,7 +333,7 @@ function renderAt(tSim, vt) {
   ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H)
   drawHud(s, tSim, vt)
   if (T_SET !== null) {
-    const since = (tSim - T_SET) / LAPSE
+    const since = vsec(tSim) - vsec(T_SET)
     if (since >= 0 && since < 0.45) glitch(1 - since / 0.45, Math.floor(tSim))
   }
   return s
@@ -348,11 +360,12 @@ if (MODE === 'render') {
   await fetch(`/done?shot=${SHOT_ID}&n=${N}&fps=${FPS}`, { method: 'POST' })
   status.textContent = `render ${SHOT_ID}: done (${N} frames) — encoding in frame_server`
 } else if (MODE === 'live') {
-  const start = num('start', Date.now()), scale = num('scale', LAPSE), t0 = num('t0', simTimeAt(0))
+  const start = num('start', Date.now())
   const loop = () => {
-    const tSim = t0 + ((Date.now() - start) / 1000) * scale
-    const s = renderAt(tSim, 0)
-    status.textContent = `live ${SHOT_ID} · scale ×${scale.toFixed(0)} · clearance ${s.earthClear.toFixed(3)}°`
+    const vt = (Date.now() - start) / 1000
+    const tSim = simTimeAt(vt)
+    const s = renderAt(tSim, vt)
+    status.textContent = `live ${SHOT_ID} · t ${vt.toFixed(1)} s · clearance ${s.earthClear.toFixed(3)}°`
     requestAnimationFrame(loop)
   }
   loop()
