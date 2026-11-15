@@ -18,7 +18,7 @@ document.body.classList.add(MODE)
 
 const SHOTS = {
   earthset: { data: 'mar2027', key: 'earthset', type: 'earthset', pre: 7, dur: 10, lapse: 10800 },
-  earthrise: { data: 'mar2027', key: 'earthrise', type: 'earthrise', pre: 4, dur: 10, lapse: 10800 },
+  earthrise: { data: 'mar2027a', key: 'earthrise_shot', type: 'earthrise', pre: 3, dur: 8, lapse: 5400 },
   'alt-earthset': { data: 'aug2027', key: 'alt_earthset', type: 'earthset', pre: 7, dur: 10, lapse: 10800 },
   cycle: { data: 'mar2027', key: 'earthset', type: 'cycle', pre: 4, dur: 24, lapse: 0 },
 }
@@ -36,7 +36,7 @@ const findEvent = (type, iso) => {
   return doc.events.filter((e) => e.type === type).reduce((a, b) => (Math.abs(b.t - target) < Math.abs(a.t - target) ? b : a)).t
 }
 const T_SET = SHOT.type === 'earthrise' ? null : findEvent('earthset', M.chosen[SHOT.key])
-const T_RISE = SHOT.type === 'earthrise' || SHOT.type === 'cycle' ? findEvent('earthrise', M.chosen.earthrise) : null
+const T_RISE = SHOT.type === 'earthrise' ? findEvent('earthrise', M.chosen[SHOT.key]) : SHOT.type === 'cycle' ? findEvent('earthrise', M.chosen.earthrise) : null
 const T_EVENT = SHOT.type === 'earthrise' ? T_RISE : T_SET
 
 const DUR = num('dur', SHOT.dur)

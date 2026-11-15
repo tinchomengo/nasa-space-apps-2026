@@ -152,7 +152,8 @@ No NASA logos.
 ### S1 — Ridge POV (Earthset + Earthrise) · MUST · Claude
 - **Events** (real, from `pipeline/export_video.py`; logged in `video/EVENTS.md`):
   - **Earthset 2027-03-19 17:07 UTC.** Madrid has the Moon at 19° until Earth sets, so SIGNAL LOST is true. Earth is only about 10 % lit (thin crescent) and the Sun is 1.5° below the horizon, so the ridge is dark.
-  - **Earthrise 2027-04-01 17:35 UTC.** LINK ✓ is true: Malargüe 25°, Goldstone 31°, Canberra 25°. Earth is about 74 % lit.
+  - **S1 Earthrise shot: 2027-03-05 12:17 UTC.** Malargüe has the Moon at 52° and climbing, above 10° for about 8 h, so LINK ✓ MALARGÜE is true for the whole clip (1.5 h/s). Earth is about 92 % lit.
+  - The first pick, 2027-04-01, was rejected for S1: Malargüe was setting and lost the Moon 1.3 h after Earthrise, so the label didn't hold. That Earthrise stays as the end of the antenna cycle (Act 4).
   - Alternatives are exported too (§3 of `video/EVENTS.md`).
 - **Scene (three.js):**
   - Camera 2 m above the site, telephoto, pointed at the event azimuth.
